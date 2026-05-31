@@ -1,0 +1,22 @@
+{
+  "product_zone": {
+    "x1": 250,
+    "y1": 580,
+    "x2": 750,
+    "y2": 780
+  },
+
+  "scene_intelligence": {
+
+    "anchor_surface": {
+      "x1": 370,
+      "y1": 760,
+      "x2": 930,
+      "y2": 790
+    },
+
+    "scene_type": "podium_showcase",
+
+    "product_type": "bottle"
+  }
+}
