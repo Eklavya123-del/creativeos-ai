@@ -68,7 +68,7 @@ model = genai.GenerativeModel(
 # CHROMA DB
 # -----------------------------------
 chroma_client = chromadb.PersistentClient(
-    path="../chroma_db"
+    path="/chroma_db"
 )
 
 collection = (
@@ -87,44 +87,34 @@ app = FastAPI()
 # -----------------------------------
 # STATIC FILES
 # -----------------------------------
-app.mount(
-
-    "/templates",
-
-    StaticFiles(
-        directory="../templates"
-    ),
-
-    name="templates"
-)
-
-app.mount(
-
-    "/uploads",
-
-    StaticFiles(
-        directory="../uploads"
-    ),
-
-    name="uploads"
-)
-
-OUTPUT_DIR = "../outputs"
 
 os.makedirs(
-    OUTPUT_DIR,
+    "outputs",
+    exist_ok=True
+)
+
+os.makedirs(
+    "uploads",
     exist_ok=True
 )
 
 
 app.mount(
+    "/uploads",
+    StaticFiles(directory="uploads"),
+    name="uploads"
+)
 
+app.mount(
+    "/templates",
+    StaticFiles(directory="templates"),
+    name="templates"
+)
+
+
+app.mount(
     "/outputs",
-
-    StaticFiles(
-        directory="../outputs"
-    ),
-
+    StaticFiles(directory="outputs"),
     name="outputs"
 )
 
@@ -149,7 +139,7 @@ app.add_middleware(
 # -----------------------------------
 # PATHS
 # -----------------------------------
-UPLOAD_DIR = "../uploads"
+UPLOAD_DIR = "/uploads"
 
 os.makedirs(
     UPLOAD_DIR,
@@ -213,8 +203,6 @@ def get_products():
 
     products_dir = os.path.join(
 
-        "..",
-
         "uploads",
 
         "products"
@@ -261,7 +249,6 @@ def get_templates(
 
     template_dir = os.path.join(
 
-        "..",
 
         "templates",
 
@@ -337,7 +324,6 @@ async def upload_product(
 
     save_dir = os.path.join(
 
-        "..",
 
         "uploads",
 
@@ -384,7 +370,6 @@ async def upload_template(
 
     save_dir = os.path.join(
 
-        "..",
 
         "templates",
 
@@ -418,7 +403,6 @@ async def upload_template(
     # -----------------------------------
     json_dir = os.path.join(
 
-        "..",
 
         "template_data",
 
@@ -674,8 +658,6 @@ def analyze_template_route(
 
         BASE_DIR,
 
-        "..",
-
         "template_data",
 
         ratio
@@ -734,7 +716,6 @@ def generate_ai_creative(
         # -----------------------------------
         template_json_path = os.path.join(
 
-            "..",
 
             "template_data",
 
@@ -920,18 +901,19 @@ def generate_ai_creative(
             # -----------------------------------
             # FALLBACK
             # -----------------------------------
+
+                
             image_path = (
 
-                generated_image.replace(
-                    "../",
-                    ""
-                )
+                    generated_image
 
-                if generated_image
+                    if generated_image
 
-                else
-                f"templates/{ratio}/{template_name}"
+                    else
+                    f"templates/{ratio}/{template_name}"
             )
+
+
 
             # -----------------------------------
             # VARIANT
@@ -1071,6 +1053,6 @@ def get_generated_image():
 
     return FileResponse(
 
-        "../outputs/square_cinematic_generated_ad.png"
+        "/outputs/square_cinematic_generated_ad.png"
     )
 
