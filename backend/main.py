@@ -109,6 +109,14 @@ app.mount(
     name="uploads"
 )
 
+OUTPUT_DIR = "../outputs"
+
+os.makedirs(
+    OUTPUT_DIR,
+    exist_ok=True
+)
+
+
 app.mount(
 
     "/outputs",
