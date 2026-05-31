@@ -29,7 +29,8 @@ type TimelineItem = {
 
   timestamp: string
 }
-
+const API_URL =
+  import.meta.env.VITE_API_URL
 
 function App() {
 
@@ -185,7 +186,7 @@ function App() {
 
         const response = await fetch(
 
-          "http://127.0.0.1:8000/generate-ai-creative",
+          "${API_URL}/generate-ai-creative",
 
           {
             method: "POST",
@@ -647,7 +648,7 @@ for modern professionals...
                 {/* IMAGE */}
                 <img
 
-                  src={`http://127.0.0.1:8000/${selectedVariant.image}`}
+                  src={`${API_URL}/${selectedVariant.image}`}
 
                   alt={selectedVariant.name}
 
@@ -853,7 +854,7 @@ for modern professionals...
 
                     <img
 
-                      src={`http://127.0.0.1:8000/${variant.image}`}
+                      src={`${API_URL}/${variant.image}`}
 
                       alt={variant.name}
 
