@@ -50,39 +50,39 @@ BASE_DIR = os.path.dirname(
     os.path.abspath(__file__)
 )
 
-ROOT_DIR = os.path.dirname(
-    BASE_DIR
-)
+
 
 UPLOAD_DIR = os.path.join(
-    ROOT_DIR,
+    BASE_DIR,
     "uploads"
 )
 
 OUTPUT_DIR = os.path.join(
-    ROOT_DIR,
+    BASE_DIR,
     "outputs"
 )
 
 TEMPLATE_DIR = os.path.join(
-    ROOT_DIR,
+    BASE_DIR,
     "templates"
 )
 
 TEMPLATE_DATA_DIR = os.path.join(
-    ROOT_DIR,
+    BASE_DIR,
     "template_data"
 )
 
 CHROMA_DIR = os.path.join(
-    ROOT_DIR,
+    BASE_DIR,
     "chroma_db"
 )
 
 FONT_DIR = os.path.join(
-    ROOT_DIR,
+    BASE_DIR,
     "fonts"
 )
+
+
 
 os.makedirs(
     UPLOAD_DIR,
@@ -141,6 +141,42 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ============================================
+# ENSURE DIRECTORIES EXIST
+# ============================================
+
+os.makedirs(
+    UPLOAD_DIR,
+    exist_ok=True
+)
+
+os.makedirs(
+    OUTPUT_DIR,
+    exist_ok=True
+)
+
+os.makedirs(
+    TEMPLATE_DIR,
+    exist_ok=True
+)
+
+os.makedirs(
+    TEMPLATE_DATA_DIR,
+    exist_ok=True
+)
+
+os.makedirs(
+    CHROMA_DIR,
+    exist_ok=True
+)
+
+os.makedirs(
+    FONT_DIR,
+    exist_ok=True
+)
+
+
 
 # ============================================
 # STATIC FILES

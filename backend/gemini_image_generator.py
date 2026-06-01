@@ -79,10 +79,13 @@ def generate_gemini_creative(
 
             image_bytes = part.inline_data.data
 
+            
             output_dir = os.path.join(
-                "..",
+                os.path.dirname(__file__),
                 "outputs"
             )
+
+
 
             os.makedirs(
                 output_dir,
