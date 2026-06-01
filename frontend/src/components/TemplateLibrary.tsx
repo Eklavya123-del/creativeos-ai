@@ -64,7 +64,7 @@ function TemplateLibrary({
 
         await fetch(
 
-          "${API_URL}/upload-template",
+          `${API_URL}/upload-template`,
 
           {
             method: "POST",

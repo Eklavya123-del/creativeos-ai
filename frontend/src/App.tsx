@@ -1,157 +1,91 @@
+import { useState } from "react"
 
-import { useEffect, useState } from "react"
-
-import "./App.css"
-
-import GenerationOverlay from "./components/GenerationOverlay"
-import CreativeTimeline from "./components/CreativeTimeline"
 import ProductLibrary from "./components/ProductLibrary"
 import TemplateLibrary from "./components/TemplateLibrary"
-import Login from "./pages/Login"
+import CreativeTimeline from "./components/CreativeTimeline"
 
-type Variant = {
-
-  name: string
-
-  image: string
-
-  prompt?: string
-
-  description?: string
-}
-
-
-type TimelineItem = {
-
-  campaign: string
-
-  result: string
-
-  timestamp: string
-}
 const API_URL =
   import.meta.env.VITE_API_URL
 
 function App() {
 
-  // -----------------------------------
-  // WORKFLOW STATE
-  // -----------------------------------
-  const [campaign, setCampaign] =
-    useState("")
-
-  const [ratio, setRatio] =
-    useState("square")
-
-  const [style, setStyle] =
-    useState("premium")
-
-  const [selectedProducts,
-  setSelectedProducts] =
+  const [selectedProducts, setSelectedProducts] =
     useState<string[]>([])
 
-  const [selectedTemplate,
-  setSelectedTemplate] =
+  const [selectedTemplate, setSelectedTemplate] =
     useState("")
 
-  const [variants, setVariants] =
-    useState<Variant[]>([])
-
-  const [selectedVariant,
-  setSelectedVariant] =
-    useState<Variant | null>(null)
+  const [generatedImage, setGeneratedImage] =
+    useState("")
 
   const [loading, setLoading] =
     useState(false)
 
   const [history, setHistory] =
-    useState<TimelineItem[]>([])
-  
-  const [isLoggedIn, setIsLoggedIn] =
-    useState(false)
+    useState<any[]>([])
+
+  const [prompt, setPrompt] =
+    useState(
+      "Launch premium sleep gummies for modern professionals with cinematic wellness aesthetic"
+    )
+
+  const [ratio, setRatio] =
+    useState("square")
+
+  const [creativeStyle, setCreativeStyle] =
+    useState("premium")
 
 
+  // ============================================
+  // PRODUCT SELECT
+  // ============================================
 
-  // -----------------------------------
-  // RESET TEMPLATE WHEN
-  // RATIO CHANGES
-  // -----------------------------------
-  useEffect(() => {
-
-    setSelectedTemplate("")
-
-  }, [ratio])
-
-
-  // -----------------------------------
-  // PRODUCT SELECTION
-  // -----------------------------------
-  const handleProductSelect = (
+  const toggleProduct = (
     product: string
   ) => {
 
-    if (
-      selectedProducts.includes(
-        product
-      )
-    ) {
+    setSelectedProducts((prev) => {
 
-      setSelectedProducts(
+      if (prev.includes(product)) {
 
-        selectedProducts.filter(
+        return prev.filter(
           (p) => p !== product
         )
-      )
+      }
 
-    } else {
-
-      setSelectedProducts([
-        ...selectedProducts,
-        product
-      ])
-    }
+      return [...prev, product]
+    })
   }
 
 
-  // -----------------------------------
-  // AI GENERATION
-  // -----------------------------------
+  // ============================================
+  // GENERATE AI WORKFLOW
+  // ============================================
+
   const generateAIWorkflow =
     async () => {
 
-      // -----------------------------------
-      // VALIDATION
-      // -----------------------------------
-      if (!campaign) {
-
-        alert(
-          "Enter campaign brief"
-        )
-
-        return
-      }
-
-      if (!selectedTemplate) {
-
-        alert(
-          "Select template"
-        )
-
-        return
-      }
-
-      if (
-        selectedProducts.length === 0
-      ) {
-
-        alert(
-          "Select at least one product"
-        )
-
-        return
-      }
-
       try {
+
+        if (
+          selectedProducts.length === 0
+        ) {
+
+          alert(
+            "Please select a product"
+          )
+
+          return
+        }
+
+        if (!selectedTemplate) {
+
+          alert(
+            "Please select a template"
+          )
+
+          return
+        }
 
         setLoading(true)
 
@@ -160,12 +94,7 @@ function App() {
 
         formData.append(
           "campaign",
-          campaign
-        )
-
-        formData.append(
-          "style",
-          style
+          prompt
         )
 
         formData.append(
@@ -174,66 +103,59 @@ function App() {
         )
 
         formData.append(
-          "template_name",
-          selectedTemplate
+          "style",
+          creativeStyle
         )
 
         formData.append(
           "selected_products",
-
-          selectedProducts.join(",")
+          JSON.stringify(
+            selectedProducts
+          )
         )
 
-        const response = await fetch(
-
-          "${API_URL}/generate-ai-creative",
-
-          {
-            method: "POST",
-            body: formData
-          }
+        formData.append(
+          "template_name",
+          selectedTemplate
         )
+
+        const response =
+          await fetch(
+
+            `${API_URL}/generate-ai-creative`,
+
+            {
+              method: "POST",
+              body: formData
+            }
+          )
 
         const data =
           await response.json()
 
         console.log(data)
 
-        if (!data.variants) {
+        if (data.generated_image) {
 
-          alert(
-            "Generation failed"
+          const imageUrl =
+            `${API_URL}${data.generated_image}`
+
+          setGeneratedImage(
+            imageUrl
           )
 
-          return
+          setHistory((prev) => [
+
+            {
+              image: imageUrl,
+              prompt,
+              ratio,
+              style: creativeStyle
+            },
+
+            ...prev
+          ])
         }
-
-        setVariants(
-          data.variants
-        )
-
-        setSelectedVariant(
-          data.variants[0]
-        )
-
-        // -----------------------------------
-        // TIMELINE
-        // -----------------------------------
-        setHistory((prev) => [
-
-          {
-            campaign,
-
-            result:
-              `${data.variants.length} AI creative directions generated`,
-
-            timestamp:
-              new Date()
-                .toLocaleString()
-          },
-
-          ...prev
-        ])
 
       } catch (error) {
 
@@ -248,683 +170,379 @@ function App() {
         setLoading(false)
       }
     }
-  
-  if (!isLoggedIn) {
-
-    return (
-
-      <Login
-        onLogin={() =>
-          setIsLoggedIn(true)
-        }
-      />
-    )
-  }
-
 
 
   return (
 
     <div className="
       min-h-screen
-      bg-[#050505]
+      bg-black
       text-white
+      flex
       overflow-hidden
     ">
 
-      {/* ----------------------------------- */}
-      {/* BACKGROUND GRADIENTS */}
-      {/* ----------------------------------- */}
+      {/* LEFT PANEL */}
+
       <div className="
-        fixed
-        top-0
-        left-0
-        w-full
-        h-full
-        pointer-events-none
-        overflow-hidden
+        w-[340px]
+        border-r
+        border-white/10
+        p-8
+        overflow-y-auto
+        bg-gradient-to-b
+        from-[#0f0f14]
+        to-black
       ">
 
-        <div className="
-          absolute
-          top-[-200px]
-          left-[-200px]
-          w-[500px]
-          h-[500px]
-          rounded-full
-          bg-purple-500/10
-          blur-[160px]
-        " />
-
-        <div className="
-          absolute
-          bottom-[-200px]
-          right-[-200px]
-          w-[500px]
-          h-[500px]
-          rounded-full
-          bg-blue-500/10
-          blur-[160px]
-        " />
-
-      </div>
-
-
-      {/* ----------------------------------- */}
-      {/* OVERLAY */}
-      {/* ----------------------------------- */}
-      {loading && (
-        <GenerationOverlay />
-      )}
-
-
-      {/* ----------------------------------- */}
-      {/* MAIN LAYOUT */}
-      {/* ----------------------------------- */}
-      <div className="
-        relative
-        z-10
-        grid
-        grid-cols-1
-        xl:grid-cols-[340px_1fr_420px]
-        min-h-screen
-      ">
-
-        {/* =================================== */}
-        {/* LEFT SIDEBAR */}
-        {/* =================================== */}
-        <div className="
-          border-r
-          border-white/10
-          bg-white/[0.03]
-          backdrop-blur-2xl
-          p-8
-          overflow-y-auto
+        <p className="
+          text-xs
+          tracking-[0.4em]
+          uppercase
+          text-zinc-500
+          mb-6
         ">
+          AI Creative Workflow
+        </p>
 
-          {/* LOGO */}
-          <div className="
-            mb-12
+        <h1 className="
+          text-6xl
+          font-black
+          leading-none
+          mb-8
+        ">
+          CreativeOS
+        </h1>
+
+        <p className="
+          text-zinc-500
+          text-lg
+          leading-relaxed
+          mb-14
+        ">
+          AI-powered cinematic campaign
+          generation workspace for modern
+          wellness brands.
+        </p>
+
+
+        {/* PROMPT */}
+
+        <div className="mb-10">
+
+          <p className="
+            text-xs
+            uppercase
+            tracking-[0.3em]
+            text-zinc-500
+            mb-4
           ">
+            Campaign Brief
+          </p>
 
-            <p className="
-              text-zinc-500
-              text-sm
-              uppercase
-              tracking-[0.3em]
-              mb-4
-            ">
-              AI Creative Workflow
-            </p>
+          <textarea
 
-            <h1 className="
-              text-6xl
-              font-black
-              tracking-tight
-              leading-none
-            ">
-              CreativeOS
-            </h1>
+            value={prompt}
 
-            <p className="
-              text-zinc-500
-              mt-5
-              leading-relaxed
-            ">
-              AI-powered cinematic
-              campaign generation
-              workspace for modern
-              wellness brands.
-            </p>
-
-          </div>
-
-
-          {/* CAMPAIGN */}
-          <div className="
-            mb-8
-          ">
-
-            <label className="
-              text-sm
-              text-zinc-500
-              mb-3
-              block
-              uppercase
-              tracking-[0.2em]
-            ">
-              Campaign Brief
-            </label>
-
-            <textarea
-
-              value={campaign}
-
-              onChange={(e) =>
-                setCampaign(
-                  e.target.value
-                )
-              }
-
-              placeholder="
-Launch premium sleep gummies
-for modern professionals...
-              "
-
-              className="
-                w-full
-                h-40
-                resize-none
-                rounded-[32px]
-                bg-white/[0.04]
-                border
-                border-white/10
-                p-6
-                outline-none
-                text-white
-                leading-relaxed
-                placeholder:text-zinc-600
-                backdrop-blur-xl
-              "
-            />
-
-          </div>
-
-
-          {/* RATIO */}
-          <div className="
-            mb-6
-          ">
-
-            <label className="
-              text-sm
-              text-zinc-500
-              mb-3
-              block
-              uppercase
-              tracking-[0.2em]
-            ">
-              Output Ratio
-            </label>
-
-            <select
-
-              value={ratio}
-
-              onChange={(e) =>
-                setRatio(
-                  e.target.value
-                )
-              }
-
-              className="
-                w-full
-                rounded-[24px]
-                bg-white/[0.04]
-                border
-                border-white/10
-                px-5
-                py-4
-                outline-none
-                backdrop-blur-xl
-              "
-            >
-
-              <option value="square">
-                Square
-              </option>
-
-              <option value="story">
-                Story
-              </option>
-
-              <option value="feed">
-                Feed
-              </option>
-
-              <option value="banner">
-                Banner
-              </option>
-
-            </select>
-
-          </div>
-
-
-          {/* STYLE */}
-          <div className="
-            mb-10
-          ">
-
-            <label className="
-              text-sm
-              text-zinc-500
-              mb-3
-              block
-              uppercase
-              tracking-[0.2em]
-            ">
-              Creative Direction
-            </label>
-
-            <select
-
-              value={style}
-
-              onChange={(e) =>
-                setStyle(
-                  e.target.value
-                )
-              }
-
-              className="
-                w-full
-                rounded-[24px]
-                bg-white/[0.04]
-                border
-                border-white/10
-                px-5
-                py-4
-                outline-none
-                backdrop-blur-xl
-              "
-            >
-
-              <option value="premium">
-                Premium
-              </option>
-
-              <option value="cinematic">
-                Cinematic
-              </option>
-
-              <option value="editorial">
-                Editorial
-              </option>
-
-              <option value="minimal">
-                Minimal
-              </option>
-
-            </select>
-
-          </div>
-
-
-          {/* GENERATE BUTTON */}
-          <button
-
-            onClick={
-              generateAIWorkflow
+            onChange={(e) =>
+              setPrompt(
+                e.target.value
+              )
             }
 
             className="
               w-full
-              rounded-[28px]
-              bg-white
-              text-black
-              py-5
-              font-bold
-              text-lg
-              hover:scale-[1.02]
-              transition-all
-              duration-300
-              shadow-2xl
+              h-40
+              rounded-[30px]
+              bg-white/[0.04]
+              border
+              border-white/10
+              p-6
+              text-zinc-300
+              resize-none
+              outline-none
+              focus:border-white/30
             "
-          >
-            Generate AI Campaign
-          </button>
-
-
-          {/* TIMELINE */}
-          <div className="
-            mt-14
-          ">
-
-            <CreativeTimeline
-              history={history}
-            />
-
-          </div>
+          />
 
         </div>
 
 
-        {/* =================================== */}
-        {/* CENTER WORKSPACE */}
-        {/* =================================== */}
+        {/* RATIO */}
+
+        <div className="mb-8">
+
+          <p className="
+            text-xs
+            uppercase
+            tracking-[0.3em]
+            text-zinc-500
+            mb-4
+          ">
+            Output Ratio
+          </p>
+
+          <select
+
+            value={ratio}
+
+            onChange={(e) =>
+              setRatio(
+                e.target.value
+              )
+            }
+
+            className="
+              w-full
+              rounded-[24px]
+              bg-white/[0.04]
+              border
+              border-white/10
+              p-5
+              outline-none
+            "
+          >
+
+            <option value="square">
+              Square
+            </option>
+
+            <option value="story">
+              Story
+            </option>
+
+            <option value="feed">
+              Feed
+            </option>
+
+            <option value="banner">
+              Banner
+            </option>
+
+          </select>
+
+        </div>
+
+
+        {/* STYLE */}
+
+        <div className="mb-10">
+
+          <p className="
+            text-xs
+            uppercase
+            tracking-[0.3em]
+            text-zinc-500
+            mb-4
+          ">
+            Creative Direction
+          </p>
+
+          <select
+
+            value={creativeStyle}
+
+            onChange={(e) =>
+              setCreativeStyle(
+                e.target.value
+              )
+            }
+
+            className="
+              w-full
+              rounded-[24px]
+              bg-white/[0.04]
+              border
+              border-white/10
+              p-5
+              outline-none
+            "
+          >
+
+            <option value="premium">
+              Premium
+            </option>
+
+            <option value="cinematic">
+              Cinematic
+            </option>
+
+            <option value="luxury">
+              Luxury
+            </option>
+
+            <option value="minimal">
+              Minimal
+            </option>
+
+          </select>
+
+        </div>
+
+
+        {/* GENERATE BUTTON */}
+
+        <button
+
+          onClick={generateAIWorkflow}
+
+          disabled={loading}
+
+          className="
+            w-full
+            py-7
+            rounded-[30px]
+            bg-white
+            text-black
+            text-2xl
+            font-black
+            hover:scale-[1.02]
+            transition-all
+            disabled:opacity-50
+            mb-16
+          "
+        >
+
+          {loading
+            ? "Generating..."
+            : "Generate AI Campaign"}
+
+        </button>
+
+
+        {/* TIMELINE */}
+
+        <div>
+
+          <p className="
+            text-xs
+            uppercase
+            tracking-[0.3em]
+            text-zinc-500
+            mb-5
+          ">
+            Workflow Memory
+          </p>
+
+          <CreativeTimeline
+            history={history}
+          />
+
+        </div>
+
+      </div>
+
+
+      {/* CENTER PANEL */}
+
+      <div className="
+        flex-1
+        p-10
+        overflow-y-auto
+      ">
+
+        <p className="
+          text-xs
+          uppercase
+          tracking-[0.3em]
+          text-zinc-500
+          mb-5
+        ">
+          AI Workspace
+        </p>
+
+        <h2 className="
+          text-6xl
+          font-black
+          mb-10
+        ">
+          Creative Directions
+        </h2>
+
+
         <div className="
-          p-10
-          overflow-y-auto
+          w-full
+          rounded-[40px]
+          border
+          border-white/10
+          bg-[#050505]
+          min-h-[760px]
+          flex
+          items-center
+          justify-center
+          overflow-hidden
+          relative
         ">
 
-          {/* HEADER */}
-          <div className="
-            flex
-            items-center
-            justify-between
-            mb-10
-          ">
+          {generatedImage ? (
 
-            <div>
+            <img
+
+              src={generatedImage}
+
+              alt="Generated Creative"
+
+              className="
+                w-full
+                h-full
+                object-contain
+              "
+            />
+
+          ) : (
+
+            <div className="text-center">
+
+              <h3 className="
+                text-5xl
+                font-black
+                mb-4
+              ">
+                Creative Workspace
+              </h3>
 
               <p className="
                 text-zinc-500
-                uppercase
-                tracking-[0.2em]
-                text-sm
-                mb-3
+                text-xl
               ">
-                AI Workspace
+                Generate cinematic AI-powered
+                campaign directions to begin.
               </p>
-
-              <h2 className="
-                text-5xl
-                font-black
-              ">
-                Creative Directions
-              </h2>
-
-            </div>
-
-          </div>
-
-
-          {/* MAIN PREVIEW */}
-          <div className="
-            bg-white/[0.04]
-            border
-            border-white/10
-            rounded-[40px]
-            p-8
-            mb-10
-            backdrop-blur-2xl
-          ">
-
-            {selectedVariant ? (
-
-              <>
-
-                {/* IMAGE */}
-                <img
-
-                  src={`${API_URL}/${selectedVariant.image}`}
-
-                  alt={selectedVariant.name}
-
-                  className="
-                    w-full
-                    rounded-[32px]
-                    shadow-2xl
-                    mb-8
-                  "
-                />
-
-
-                {/* INFO */}
-                <div className="
-                  grid
-                  xl:grid-cols-2
-                  gap-8
-                ">
-
-                  {/* LEFT */}
-                  <div>
-
-                    <p className="
-                      text-zinc-500
-                      text-sm
-                      uppercase
-                      tracking-[0.2em]
-                      mb-3
-                    ">
-                      AI Direction
-                    </p>
-
-                    <h2 className="
-                      text-5xl
-                      font-black
-                      mb-6
-                    ">
-                      {selectedVariant.name}
-                    </h2>
-
-                    <p className="
-                      text-zinc-300
-                      leading-relaxed
-                      text-lg
-                    ">
-                      {
-                        selectedVariant.description
-                      }
-                    </p>
-
-                  </div>
-
-
-                  {/* RIGHT */}
-                  <div className="
-                    bg-white/[0.04]
-                    border
-                    border-white/10
-                    rounded-[32px]
-                    p-6
-                    backdrop-blur-xl
-                  ">
-
-                    <p className="
-                      text-zinc-500
-                      text-sm
-                      uppercase
-                      tracking-[0.2em]
-                      mb-4
-                    ">
-                      AI Creative Prompt
-                    </p>
-
-                    <div className="
-                      max-h-[350px]
-                      overflow-y-auto
-                    ">
-
-                      <p className="
-                        text-zinc-300
-                        leading-relaxed
-                        whitespace-pre-wrap
-                      ">
-                        {
-                          selectedVariant.prompt
-                        }
-                      </p>
-
-                    </div>
-
-                  </div>
-
-                </div>
-
-              </>
-
-            ) : (
-
-              <div className="
-                h-[700px]
-                flex
-                items-center
-                justify-center
-              ">
-
-                <div className="
-                  text-center
-                ">
-
-                  <h2 className="
-                    text-4xl
-                    font-black
-                    mb-4
-                  ">
-                    Creative Workspace
-                  </h2>
-
-                  <p className="
-                    text-zinc-500
-                    text-lg
-                  ">
-                    Generate cinematic
-                    AI-powered campaign
-                    directions to begin.
-                  </p>
-
-                </div>
-
-              </div>
-            )}
-
-          </div>
-
-
-          {/* VARIANTS */}
-          {variants.length > 0 && (
-
-            <div>
-
-              <div className="
-                flex
-                items-center
-                justify-between
-                mb-6
-              ">
-
-                <h2 className="
-                  text-3xl
-                  font-black
-                ">
-                  AI Variants
-                </h2>
-
-                <p className="
-                  text-zinc-500
-                ">
-                  {variants.length}
-                  generated directions
-                </p>
-
-              </div>
-
-              <div className="
-                grid
-                grid-cols-2
-                xl:grid-cols-4
-                gap-6
-              ">
-
-                {variants.map((variant) => (
-
-                  <div
-
-                    key={variant.name}
-
-                    onClick={() =>
-                      setSelectedVariant(
-                        variant
-                      )
-                    }
-
-                    className={`
-                      cursor-pointer
-                      rounded-[32px]
-                      overflow-hidden
-                      border
-                      transition-all
-                      duration-300
-                      bg-white/[0.04]
-                      backdrop-blur-xl
-                      hover:scale-[1.02]
-
-                      ${
-                        selectedVariant?.name ===
-                        variant.name
-
-                        ? "border-white"
-
-                        : "border-white/10"
-                      }
-                    `}
-                  >
-
-                    <img
-
-                      src={`${API_URL}/${variant.image}`}
-
-                      alt={variant.name}
-
-                      className="
-                        w-full
-                      "
-                    />
-
-                    <div className="
-                      p-5
-                    ">
-
-                      <h3 className="
-                        text-xl
-                        font-bold
-                        mb-2
-                      ">
-                        {variant.name}
-                      </h3>
-
-                      <p className="
-                        text-zinc-500
-                        text-sm
-                        line-clamp-3
-                      ">
-                        {
-                          variant.description
-                        }
-                      </p>
-
-                    </div>
-
-                  </div>
-                ))}
-
-              </div>
 
             </div>
           )}
 
         </div>
 
-
-        {/* =================================== */}
-        {/* RIGHT PANEL */}
-        {/* =================================== */}
-        <div className="
-          border-l
-          border-white/10
-          bg-white/[0.03]
-          backdrop-blur-2xl
-          p-8
-          overflow-y-auto
-          space-y-10
-        ">
-
-          {/* PRODUCTS */}
-          <ProductLibrary
-
-            selectedProducts={
-              selectedProducts
-            }
-
-            onSelect={
-              handleProductSelect
-            }
-          />
+      </div>
 
 
-          {/* TEMPLATES */}
+      {/* RIGHT PANEL */}
+
+      <div className="
+        w-[420px]
+        border-l
+        border-white/10
+        p-8
+        overflow-y-auto
+        bg-gradient-to-b
+        from-black
+        to-[#04101f]
+      ">
+
+        <ProductLibrary
+
+          selectedProducts={
+            selectedProducts
+          }
+
+          onSelect={
+            toggleProduct
+          }
+        />
+
+        <div className="mt-16">
+
           <TemplateLibrary
 
             ratio={ratio}
@@ -947,4 +565,3 @@ for modern professionals...
 }
 
 export default App
-

@@ -1,9 +1,6 @@
-
 import { useEffect, useState } from "react"
 
-
 interface Props {
-
   selectedProducts: string[]
 
   onSelect: (
@@ -11,13 +8,9 @@ interface Props {
   ) => void
 }
 
-
 function ProductLibrary({
-
   selectedProducts,
-
   onSelect
-
 }: Props) {
 
   const [products, setProducts] =
@@ -25,12 +18,47 @@ function ProductLibrary({
 
   const [uploading, setUploading] =
     useState(false)
-  const API_URL =
-  import.meta.env.VITE_API_URL
 
-  // -----------------------------------
+  const API_URL =
+    import.meta.env.VITE_API_URL
+
+  // ============================================
+  // FETCH PRODUCTS
+  // ============================================
+
+  const fetchProducts = async () => {
+
+    try {
+
+      const response =
+        await fetch(
+          `${API_URL}/products`
+        )
+
+      const data =
+        await response.json()
+
+      setProducts(
+        data.products || []
+      )
+
+    } catch (error) {
+
+      console.error(error)
+    }
+  }
+
+  useEffect(() => {
+
+    fetchProducts()
+
+  }, [])
+
+
+  // ============================================
   // UPLOAD PRODUCT
-  // -----------------------------------
+  // ============================================
+
   const uploadProduct =
     async (
       e: React.ChangeEvent<HTMLInputElement>
@@ -55,27 +83,15 @@ function ProductLibrary({
 
         await fetch(
 
-          "${API_URL}/upload-product",
+          `${API_URL}/upload-product`,
 
           {
             method: "POST",
-
             body: formData
           }
         )
 
-        // REFRESH PRODUCTS
-        const response =
-          await fetch(
-            "${API_URL}/products"
-          )
-
-        const data =
-          await response.json()
-
-        setProducts(
-          data.products || []
-        )
+        await fetchProducts()
 
       } catch (error) {
 
@@ -88,32 +104,12 @@ function ProductLibrary({
     }
 
 
-  // -----------------------------------
-  // FETCH PRODUCTS
-  // -----------------------------------
-  useEffect(() => {
-
-    fetch(
-      "${API_URL}/products"
-    )
-
-      .then((res) => res.json())
-
-      .then((data) => {
-
-        setProducts(
-          data.products || []
-        )
-      })
-
-  }, [])
-
-
   return (
 
     <div>
 
       {/* HEADER */}
+
       <div className="
         flex
         items-center
@@ -141,6 +137,7 @@ function ProductLibrary({
           </h2>
 
           {/* UPLOAD BUTTON */}
+
           <label className="
             inline-flex
             items-center
@@ -180,7 +177,8 @@ function ProductLibrary({
       </div>
 
 
-      {/* GRID */}
+      {/* PRODUCTS GRID */}
+
       <div className="
         grid
         grid-cols-2
@@ -205,6 +203,7 @@ function ProductLibrary({
               }
 
               className={`
+
                 group
                 cursor-pointer
                 rounded-[30px]
@@ -219,14 +218,16 @@ function ProductLibrary({
                 ${
                   isSelected
 
-                  ? "border-white shadow-[0_0_40px_rgba(255,255,255,0.15)]"
+                    ? "border-white shadow-[0_0_40px_rgba(255,255,255,0.15)]"
 
-                  : "border-white/10"
+                    : "border-white/10"
                 }
+
               `}
             >
 
               {/* IMAGE */}
+
               <div className="
                 h-52
                 flex
@@ -257,9 +258,8 @@ function ProductLibrary({
 
 
               {/* FOOTER */}
-              <div className="
-                p-5
-              ">
+
+              <div className="p-5">
 
                 <p className="
                   text-sm
@@ -309,4 +309,3 @@ function ProductLibrary({
 }
 
 export default ProductLibrary
-
