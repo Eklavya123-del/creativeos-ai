@@ -64,7 +64,7 @@ function TemplateLibrary({
 
         await fetch(
 
-          "http://${API_URL}/upload-template",
+          "${API_URL}/upload-template",
 
           {
             method: "POST",
@@ -77,7 +77,7 @@ function TemplateLibrary({
         const response =
           await fetch(
 
-            `http://${API_URL}/template-list/${ratio}`
+            `${API_URL}/template-list/${ratio}`
           )
 
         const data =
@@ -104,7 +104,7 @@ function TemplateLibrary({
   useEffect(() => {
 
     fetch(
-      `http://${API_URL}/template-list/${ratio}`
+      `${API_URL}/template-list/${ratio}`
     )
 
       .then((res) => res.json())
@@ -251,7 +251,7 @@ function TemplateLibrary({
 
                 <img
 
-                  src={`http://${API_URL}/templates/${ratio}/${template}`}
+                  src={`${API_URL}/templates/${ratio}/${template}`}
 
                   alt={template}
 

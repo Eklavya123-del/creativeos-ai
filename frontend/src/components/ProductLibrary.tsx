@@ -55,7 +55,7 @@ function ProductLibrary({
 
         await fetch(
 
-          "http://${API_URL}/upload-product",
+          "${API_URL}/upload-product",
 
           {
             method: "POST",
@@ -67,7 +67,7 @@ function ProductLibrary({
         // REFRESH PRODUCTS
         const response =
           await fetch(
-            "http://${API_URL}/products"
+            "${API_URL}/products"
           )
 
         const data =
@@ -94,7 +94,7 @@ function ProductLibrary({
   useEffect(() => {
 
     fetch(
-      "http://${API_URL}/products"
+      "${API_URL}/products"
     )
 
       .then((res) => res.json())
@@ -240,7 +240,7 @@ function ProductLibrary({
 
                 <img
 
-                  src={`http://${API_URL}/uploads/products/${product}`}
+                  src={`${API_URL}/uploads/products/${product}`}
 
                   alt={product}
 
