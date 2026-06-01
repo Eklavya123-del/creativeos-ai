@@ -25,7 +25,8 @@ function ProductLibrary({
 
   const [uploading, setUploading] =
     useState(false)
-
+  const API_URL =
+  import.meta.env.VITE_API_URL
 
   // -----------------------------------
   // UPLOAD PRODUCT
@@ -54,7 +55,7 @@ function ProductLibrary({
 
         await fetch(
 
-          "http://127.0.0.1:8000/upload-product",
+          "http://${API_URL}/upload-product",
 
           {
             method: "POST",
@@ -66,7 +67,7 @@ function ProductLibrary({
         // REFRESH PRODUCTS
         const response =
           await fetch(
-            "http://127.0.0.1:8000/products"
+            "http://${API_URL}/products"
           )
 
         const data =
@@ -93,7 +94,7 @@ function ProductLibrary({
   useEffect(() => {
 
     fetch(
-      "http://127.0.0.1:8000/products"
+      "http://${API_URL}/products"
     )
 
       .then((res) => res.json())
@@ -239,7 +240,7 @@ function ProductLibrary({
 
                 <img
 
-                  src={`http://127.0.0.1:8000/uploads/products/${product}`}
+                  src={`http://${API_URL}/uploads/products/${product}`}
 
                   alt={product}
 

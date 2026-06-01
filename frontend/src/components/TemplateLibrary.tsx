@@ -26,7 +26,8 @@ function TemplateLibrary({
 
   const [templates, setTemplates] =
     useState<string[]>([])
-
+  const API_URL =
+  import.meta.env.VITE_API_URL
   const [uploading, setUploading] =
     useState(false)
 
@@ -63,7 +64,7 @@ function TemplateLibrary({
 
         await fetch(
 
-          "http://127.0.0.1:8000/upload-template",
+          "http://${API_URL}/upload-template",
 
           {
             method: "POST",
@@ -76,7 +77,7 @@ function TemplateLibrary({
         const response =
           await fetch(
 
-            `http://127.0.0.1:8000/template-list/${ratio}`
+            `http://${API_URL}/template-list/${ratio}`
           )
 
         const data =
@@ -103,7 +104,7 @@ function TemplateLibrary({
   useEffect(() => {
 
     fetch(
-      `http://127.0.0.1:8000/template-list/${ratio}`
+      `http://${API_URL}/template-list/${ratio}`
     )
 
       .then((res) => res.json())
@@ -250,7 +251,7 @@ function TemplateLibrary({
 
                 <img
 
-                  src={`http://127.0.0.1:8000/templates/${ratio}/${template}`}
+                  src={`http://${API_URL}/templates/${ratio}/${template}`}
 
                   alt={template}
 
