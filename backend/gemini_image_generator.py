@@ -1,85 +1,107 @@
 
 import os
-import uuid
-from dotenv import load_dotenv
 
-load_dotenv()
 from google import genai
 from google.genai import types
 
-from PIL import Image
-from io import BytesIO
-
 
 client = genai.Client(
-    api_key=os.getenv(
-        "GEMINI_API_KEY"
-    )
+    api_key=os.getenv("GEMINI_API_KEY")
 )
 
 
-def generate_creative_image(
+def generate_gemini_creative(
 
-    prompt: str
+    campaign_brief: str,
+
+    headline: str,
+
+    template_style: str,
+
+    ratio: str,
+
+    product_name: str
 ):
 
-    try:
+    prompt = f"""
+    Create a premium wellness supplement advertisement.
 
-        response = client.models.generate_content(
+    Campaign:
+    {campaign_brief}
 
-            model="gemini-2.0-flash-preview-image-generation",
+    Headline:
+    {headline}
 
-            contents=prompt,
+    Product:
+    {product_name}
 
-            config=types.GenerateContentConfig(
+    Style:
+    {template_style}
 
-                response_modalities=[
-                    "TEXT",
-                    "IMAGE"
-                ]
+    Ratio:
+    {ratio}
+
+    The advertisement should feel:
+    - cinematic
+    - premium
+    - luxury wellness
+    - modern
+    - clean composition
+    - realistic product photography
+    - elegant lighting
+    - highly aesthetic
+
+    Ensure:
+    - strong typography hierarchy
+    - realistic product placement
+    - premium shadows
+    - depth
+    - award-winning ad composition
+    """
+
+    response = client.models.generate_content(
+
+        model="gemini-2.0-flash-preview-image-generation",
+
+        contents=prompt,
+
+        config=types.GenerateContentConfig(
+            response_modalities=[
+                "TEXT",
+                "IMAGE"
+            ]
+        )
+    )
+
+    for part in response.candidates[0].content.parts:
+
+        if part.inline_data:
+
+            image_bytes = part.inline_data.data
+
+            output_dir = os.path.join(
+                "..",
+                "outputs"
             )
-        )
 
-        output_dir = "../outputs"
+            os.makedirs(
+                output_dir,
+                exist_ok=True
+            )
 
-        os.makedirs(
-            output_dir,
-            exist_ok=True
-        )
+            output_path = os.path.join(
+                output_dir,
+                "generated_ai_creative.png"
+            )
 
-        generated_path = os.path.join(
+            with open(
+                output_path,
+                "wb"
+            ) as f:
 
-            output_dir,
+                f.write(image_bytes)
 
-            f"{uuid.uuid4()}.png"
-        )
+            return "/outputs/generated_ai_creative.png"
 
-        for part in response.candidates[0].content.parts:
-
-            if part.inline_data:
-
-                image = Image.open(
-
-                    BytesIO(
-                        part.inline_data.data
-                    )
-                )
-
-                image.save(
-                    generated_path
-                )
-
-                return generated_path
-
-        return None
-
-    except Exception as e:
-
-        print(
-            "IMAGE GENERATION ERROR:"
-        )
-
-        print(str(e))
-
-        return None
+    return None
 
