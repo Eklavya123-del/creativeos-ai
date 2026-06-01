@@ -587,13 +587,20 @@ async def generate_ai_creative(
         # GENERATE IMAGE
         # ====================================
 
-        generated_image = generate_gemini_creative(
+        generated = generate_gemini_creative(
 
-            prompt=prompt,
+            campaign_brief=campaign,
 
-            product_image_path=product_path
+            headline=campaign,
+
+            template_style=style,
+
+            ratio=ratio,
+
+            product_name=selected_product,
+
+            template_data=template_data
         )
-
         # ====================================
         # SAVE MEMORY
         # ====================================
@@ -607,9 +614,9 @@ async def generate_ai_creative(
 
         image_path = (
 
-            generated_image
+            generated["frontend_path"]
 
-            if generated_image
+            if generated
 
             else
             f"/templates/{ratio}/{template_name}"
