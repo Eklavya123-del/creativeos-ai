@@ -1,4 +1,3 @@
-
 from fastapi import (
     FastAPI,
     UploadFile,
@@ -10,49 +9,103 @@ from fastapi.middleware.cors import (
     CORSMiddleware
 )
 
-from fastapi.responses import (
-    FileResponse
-)
-from gemini_image_generator import (
-    generate_creative_image
-)
 from fastapi.staticfiles import (
     StaticFiles
 )
 
-from PIL import Image
-
-from dotenv import load_dotenv
+from fastapi.responses import (
+    FileResponse
+)
 
 from pydantic import BaseModel
 
-import chromadb
+from PIL import Image
 
 import google.generativeai as genai
+
+from dotenv import load_dotenv
+
+import chromadb
 
 import shutil
 import os
 import json
 import uuid
 
-from template_analyzer import (
-    analyze_template
+from gemini_image_generator import (
+    generate_gemini_creative
 )
 
-from nano_banana import (
-    generate_nano_banana_prompt
-)
-
-
-# -----------------------------------
+# ============================================
 # LOAD ENV
-# -----------------------------------
+# ============================================
+
 load_dotenv()
 
+# ============================================
+# PATHS
+# ============================================
 
-# -----------------------------------
+BASE_DIR = os.path.dirname(
+    os.path.abspath(__file__)
+)
+
+ROOT_DIR = os.path.dirname(
+    BASE_DIR
+)
+
+UPLOAD_DIR = os.path.join(
+    ROOT_DIR,
+    "uploads"
+)
+
+OUTPUT_DIR = os.path.join(
+    ROOT_DIR,
+    "outputs"
+)
+
+TEMPLATE_DIR = os.path.join(
+    ROOT_DIR,
+    "templates"
+)
+
+TEMPLATE_DATA_DIR = os.path.join(
+    ROOT_DIR,
+    "template_data"
+)
+
+CHROMA_DIR = os.path.join(
+    ROOT_DIR,
+    "chroma_db"
+)
+
+FONT_DIR = os.path.join(
+    ROOT_DIR,
+    "fonts"
+)
+
+os.makedirs(
+    UPLOAD_DIR,
+    exist_ok=True
+)
+
+os.makedirs(
+    OUTPUT_DIR,
+    exist_ok=True
+)
+
+os.makedirs(
+    os.path.join(
+        UPLOAD_DIR,
+        "products"
+    ),
+    exist_ok=True
+)
+
+# ============================================
 # GEMINI
-# -----------------------------------
+# ============================================
+
 genai.configure(
     api_key=os.getenv(
         "GEMINI_API_KEY"
@@ -63,129 +116,66 @@ model = genai.GenerativeModel(
     "gemini-2.5-flash"
 )
 
-
-# -----------------------------------
+# ============================================
 # CHROMA DB
-# -----------------------------------
+# ============================================
+
 chroma_client = chromadb.PersistentClient(
-    path="chroma_db"
+    path=CHROMA_DIR
 )
 
-collection = (
-    chroma_client.get_or_create_collection(
-        name="brand_creatives"
-    )
+collection = chroma_client.get_or_create_collection(
+    name="brand_creatives"
 )
 
-
-# -----------------------------------
+# ============================================
 # FASTAPI
-# -----------------------------------
+# ============================================
+
 app = FastAPI()
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-# -----------------------------------
+# ============================================
 # STATIC FILES
-# -----------------------------------
-
-os.makedirs(
-    "outputs",
-    exist_ok=True
-)
-
-os.makedirs(
-    "uploads",
-    exist_ok=True
-)
-
+# ============================================
 
 app.mount(
     "/uploads",
-    StaticFiles(directory="uploads"),
+    StaticFiles(directory=UPLOAD_DIR),
     name="uploads"
 )
 
 app.mount(
     "/templates",
-    StaticFiles(directory="templates"),
+    StaticFiles(directory=TEMPLATE_DIR),
     name="templates"
 )
 
-
 app.mount(
     "/outputs",
-    StaticFiles(directory="outputs"),
+    StaticFiles(directory=OUTPUT_DIR),
     name="outputs"
 )
 
-
-# -----------------------------------
-# CORS
-# -----------------------------------
-app.add_middleware(
-
-    CORSMiddleware,
-
-    allow_origins=["*"],
-
-    allow_credentials=True,
-
-    allow_methods=["*"],
-
-    allow_headers=["*"],
-)
-
-
-# -----------------------------------
-# PATHS
-# -----------------------------------
-UPLOAD_DIR = "/uploads"
-
-os.makedirs(
-    UPLOAD_DIR,
-    exist_ok=True
-)
-
-
-# -----------------------------------
+# ============================================
 # MODELS
-# -----------------------------------
+# ============================================
+
 class CampaignRequest(BaseModel):
 
     campaign: str
 
-
-# -----------------------------------
-# SAFE GEMINI
-# -----------------------------------
-def safe_generate(prompt):
-
-    try:
-
-        response = model.generate_content(
-            prompt
-        )
-
-        if hasattr(response, "text"):
-
-            return response.text
-
-        return "AI response unavailable."
-
-    except Exception as e:
-
-        print("GEMINI ERROR:")
-        print(str(e))
-
-        return (
-            "Creative intelligence "
-            "temporarily unavailable."
-        )
-
-
-# -----------------------------------
+# ============================================
 # HOME
-# -----------------------------------
+# ============================================
+
 @app.get("/")
 def home():
 
@@ -194,17 +184,15 @@ def home():
         "CreativeOS Backend Running"
     }
 
+# ============================================
+# PRODUCTS
+# ============================================
 
-# -----------------------------------
-# PRODUCTS API
-# -----------------------------------
 @app.get("/products")
 def get_products():
 
     products_dir = os.path.join(
-
-        "uploads",
-
+        UPLOAD_DIR,
         "products"
     )
 
@@ -216,7 +204,7 @@ def get_products():
             "products": []
         }
 
-    files = [
+    products = [
 
         file
 
@@ -224,23 +212,24 @@ def get_products():
             products_dir
         )
 
-        if file.endswith((
-            ".png",
-            ".jpg",
-            ".jpeg",
-            ".webp"
-        ))
+        if file.endswith(
+            (
+                ".png",
+                ".jpg",
+                ".jpeg",
+                ".webp"
+            )
+        )
     ]
 
     return {
-
-        "products": files
+        "products": products
     }
 
+# ============================================
+# TEMPLATE LIST
+# ============================================
 
-# -----------------------------------
-# TEMPLATE LIST API
-# -----------------------------------
 @app.get("/template-list/{ratio}")
 def get_templates(
 
@@ -248,10 +237,7 @@ def get_templates(
 ):
 
     template_dir = os.path.join(
-
-
-        "templates",
-
+        TEMPLATE_DIR,
         ratio
     )
 
@@ -263,58 +249,37 @@ def get_templates(
             "templates": []
         }
 
-    templates = [
+    templates = []
 
-        file
+    for template_name in os.listdir(
+        template_dir
+    ):
 
-        for file in os.listdir(
-            template_dir
-        )
+        if template_name.endswith(
+            (
+                ".png",
+                ".jpg",
+                ".jpeg",
+                ".webp"
+            )
+        ):
 
-        if file.endswith(".png")
-    ]
+            templates.append({
+
+                "name":
+                template_name,
+
+                "image":
+                f"/templates/{ratio}/{template_name}"
+            })
 
     return {
-
         "templates": templates
     }
 
-
-# -----------------------------------
-# IMAGE UPLOAD
-# -----------------------------------
-@app.post("/upload")
-async def upload_image(
-
-    file: UploadFile = File(...)
-):
-
-    file_path = os.path.join(
-
-        UPLOAD_DIR,
-
-        file.filename
-    )
-
-    with open(
-        file_path,
-        "wb"
-    ) as buffer:
-
-        shutil.copyfileobj(
-            file.file,
-            buffer
-        )
-
-    return {
-
-        "filename":
-        file.filename,
-
-        "path":
-        file_path
-    }
-
+# ============================================
+# UPLOAD PRODUCT
+# ============================================
 
 @app.post("/upload-product")
 async def upload_product(
@@ -323,10 +288,7 @@ async def upload_product(
 ):
 
     save_dir = os.path.join(
-
-
-        "uploads",
-
+        UPLOAD_DIR,
         "products"
     )
 
@@ -336,9 +298,7 @@ async def upload_product(
     )
 
     file_path = os.path.join(
-
         save_dir,
-
         file.filename
     )
 
@@ -354,11 +314,16 @@ async def upload_product(
 
     return {
 
-        "status": "success",
+        "status":
+        "success",
 
         "filename":
         file.filename
     }
+
+# ============================================
+# UPLOAD TEMPLATE
+# ============================================
 
 @app.post("/upload-template")
 async def upload_template(
@@ -369,10 +334,7 @@ async def upload_template(
 ):
 
     save_dir = os.path.join(
-
-
-        "templates",
-
+        TEMPLATE_DIR,
         ratio
     )
 
@@ -382,9 +344,7 @@ async def upload_template(
     )
 
     file_path = os.path.join(
-
         save_dir,
-
         file.filename
     )
 
@@ -398,14 +358,10 @@ async def upload_template(
             buffer
         )
 
-    # -----------------------------------
-    # AUTO CREATE JSON
-    # -----------------------------------
+    # CREATE TEMPLATE JSON
+
     json_dir = os.path.join(
-
-
-        "template_data",
-
+        TEMPLATE_DATA_DIR,
         ratio
     )
 
@@ -421,7 +377,7 @@ async def upload_template(
         f"{os.path.splitext(file.filename)[0]}.json"
     )
 
-    default_json = {
+    template_data = {
 
         "product_zone": {
 
@@ -455,269 +411,71 @@ async def upload_template(
     ) as f:
 
         json.dump(
-            default_json,
+            template_data,
             f,
             indent=4
         )
 
     return {
 
-        "status": "success",
+        "status":
+        "success",
 
         "template":
         file.filename
     }
 
-
-
-# -----------------------------------
-# GEMINI TEST
-# -----------------------------------
-@app.get("/test-gemini")
-def test_gemini():
-
-    response = safe_generate(
-        "Say CreativeOS AI is working."
-    )
-
-    return {
-
-        "response":
-        response
-    }
-
-
-# -----------------------------------
-# BRAND ANALYSIS
-# -----------------------------------
-@app.post("/analyze-brand")
-async def analyze_brand(
-
-    file: UploadFile = File(...)
-):
-
-    image = Image.open(
-        file.file
-    )
-
-    prompt = """
-    You are a premium wellness
-    creative strategist.
-
-    Analyze this brand creative.
-
-    Generate:
-    - brand tone
-    - visual identity
-    - luxury positioning
-    - aesthetic direction
-    """
-
-    response = safe_generate(prompt)
-
-    collection.add(
-
-        documents=[response],
-
-        ids=[file.filename]
-    )
-
-    return {
-
-        "analysis":
-        response
-    }
-
-
-# -----------------------------------
-# RETRIEVE MEMORY
-# -----------------------------------
-@app.get("/retrieve")
-def retrieve(query: str):
-
-    try:
-
-        results = collection.query(
-
-            query_texts=[query],
-
-            n_results=5
-        )
-
-        return results
-
-    except Exception as e:
-
-        return {
-            "error": str(e)
-        }
-
-
-# -----------------------------------
-# GENERATE COPY
-# -----------------------------------
-@app.post("/generate-copy")
-def generate_copy(
-
-    data: CampaignRequest
-):
-
-    query = data.campaign
-
-    references = []
-
-    try:
-
-        results = collection.query(
-
-            query_texts=[query],
-
-            n_results=3
-        )
-
-        references = (
-            results["documents"][0]
-        )
-
-    except Exception as e:
-
-        print(str(e))
-
-    prompt = f"""
-    You are an AI creative
-    strategist for a premium
-    wellness brand.
-
-    Campaign:
-    {query}
-
-    Previous References:
-    {references}
-
-    Generate:
-
-    1. 5 Headlines
-    2. 5 CTA Variations
-    3. 3 Ad Copy Variations
-
-    Keep it:
-    cinematic,
-    premium,
-    luxury,
-    scientific,
-    wellness-focused.
-    """
-
-    response = safe_generate(
-        prompt
-    )
-
-    return {
-
-        "campaign":
-        query,
-
-        "references":
-        references,
-
-        "generated_copy":
-        response
-    }
-
-
-# -----------------------------------
-# ANALYZE TEMPLATE
-# -----------------------------------
-@app.post("/analyze-template")
-def analyze_template_route(
-
-    template_name: str,
-
-    ratio: str
-):
-
-    template_path = os.path.join(
-
-        ratio,
-
-        template_name
-    )
-
-    data = analyze_template(
-
-        template_path,
-
-        model
-    )
-
-    BASE_DIR = os.path.dirname(
-        os.path.abspath(__file__)
-    )
-
-    save_dir = os.path.join(
-
-        BASE_DIR,
-
-        "template_data",
-
-        ratio
-    )
-
-    os.makedirs(
-
-        save_dir,
-
-        exist_ok=True
-    )
-
-    save_path = os.path.join(
-
-        save_dir,
-
-        f"{template_name}.json"
-    )
-
-    with open(
-        save_path,
-        "w"
-    ) as f:
-
-        json.dump(
-            data,
-            f,
-            indent=4
-        )
-
-    return data
-
-
-# -----------------------------------
-# AI CREATIVE GENERATION
-# -----------------------------------
+# ============================================
+# GENERATE AI CREATIVE
+# ============================================
 
 @app.post("/generate-ai-creative")
-def generate_ai_creative(
+async def generate_ai_creative(
 
     campaign: str = Form(...),
 
-    style: str = Form(...),
-
     ratio: str = Form(...),
 
-    template_name: str = Form(...),
+    style: str = Form(...),
 
-    selected_products: str = Form(...)
+    selected_products: str = Form(...),
+
+    template_name: str = Form(...)
 ):
 
     try:
 
-        # -----------------------------------
+        products = json.loads(
+            selected_products
+        )
+
+        if len(products) == 0:
+
+            return {
+                "error":
+                "No product selected"
+            }
+
+        selected_product = products[0]
+
+        # ====================================
+        # PRODUCT PATH
+        # ====================================
+
+        product_path = os.path.join(
+
+            UPLOAD_DIR,
+            "products",
+            selected_product
+        )
+
+        # ====================================
         # TEMPLATE JSON
-        # -----------------------------------
+        # ====================================
+
         template_json_path = os.path.join(
 
-
-            "template_data",
+            TEMPLATE_DATA_DIR,
 
             ratio,
 
@@ -731,328 +489,167 @@ def generate_ai_creative(
 
             template_data = json.load(f)
 
-        # -----------------------------------
-        # PRODUCTS
-        # -----------------------------------
-        products = [
+        # ====================================
+        # CHROMA REFERENCES
+        # ====================================
 
-            p.strip()
+        results = collection.query(
 
-            for p in selected_products.split(",")
+            query_texts=[campaign],
 
-            if p.strip()
-        ]
+            n_results=3
+        )
 
-        # -----------------------------------
-        # CREATIVE MEMORY
-        # -----------------------------------
         references = []
 
         try:
 
-            memory_results = collection.query(
+            references = results[
+                "documents"
+            ][0]
 
-                query_texts=[campaign],
+        except:
 
-                n_results=3
-            )
+            references = []
 
-            if (
-                memory_results and
-                memory_results["documents"]
-            ):
+        # ====================================
+        # GEMINI PROMPT
+        # ====================================
 
-                references = (
-                    memory_results["documents"][0]
-                )
+        prompt = f"""
+        Create a cinematic premium wellness advertisement.
 
-        except Exception as e:
+        Campaign:
+        {campaign}
 
-            print("MEMORY ERROR:")
-            print(str(e))
+        Style:
+        {style}
 
-        # -----------------------------------
-        # FINAL MASTER PROMPT
-        # -----------------------------------
-        final_prompt = (
-            generate_nano_banana_prompt(
+        Ratio:
+        {ratio}
 
-                campaign=campaign,
+        Template Intelligence:
+        {json.dumps(template_data)}
 
-                style=style,
+        Previous Creative Learnings:
+        {references}
 
-                ratio=ratio,
+        Rules:
 
-                template_data=template_data,
+        - Place the product naturally on the platform
+        - Maintain cinematic luxury lighting
+        - Product should feel realistic
+        - Premium wellness aesthetic
+        - Scientific modern branding
+        - High-end commercial look
+        - Beautiful typography
+        - Strong composition
+        - Ad should feel award-winning
+        """
 
-                selected_products=products,
+        # ====================================
+        # GENERATE IMAGE
+        # ====================================
 
-                references=references
-            )
+        generated_image = generate_gemini_creative(
+
+            prompt=prompt,
+
+            product_image_path=product_path
         )
 
-        # -----------------------------------
-        # CREATIVE DIRECTIONS
-        # -----------------------------------
-        directions = [
+        # ====================================
+        # SAVE MEMORY
+        # ====================================
 
-            "Balanced",
+        collection.add(
 
-            "Cinematic",
+            documents=[prompt],
 
-            "Editorial",
-
-            "Bold"
-        ]
-
-        variants = []
-
-        for direction in directions:
-
-            # -----------------------------------
-            # VARIANT PROMPT
-            # -----------------------------------
-            variant_prompt = f"""
-
-            Create a premium luxury
-            wellness advertisement.
-
-            Campaign:
-            {campaign}
-
-            Style:
-            {style}
-
-            Creative Direction:
-            {direction}
-
-            Ratio:
-            {ratio}
-
-            Products:
-            {products}
-
-            Template Intelligence:
-            {template_data}
-
-            Previous Creative Memory:
-            {references}
-
-            MASTER PROMPT:
-            {final_prompt}
-
-            REQUIREMENTS:
-
-            - luxury wellness aesthetic
-            - cinematic lighting
-            - premium typography
-            - realistic product placement
-            - modern advertising feel
-            - high-end composition
-            - ultra realistic
-            - premium skincare/wellness campaign
-            - realistic shadows
-            - realistic reflections
-            - cinematic atmosphere
-            - elegant composition
-            - expensive looking
-            - professional advertising photography
-
-            IMPORTANT:
-            Make the creative look like
-            an award-winning wellness ad campaign.
-            """
-
-            # -----------------------------------
-            # AI DESCRIPTION
-            # -----------------------------------
-            description = safe_generate(
-
-                f"""
-                You are an elite creative
-                director for luxury wellness
-                campaigns.
-
-                Analyze this direction:
-
-                {variant_prompt}
-
-                Generate:
-                - visual strategy
-                - lighting style
-                - composition logic
-                - emotional tone
-                - premium campaign reasoning
-
-                Keep it concise,
-                cinematic and premium.
-                """
-            )
-
-            # -----------------------------------
-            # REAL IMAGE GENERATION
-            # -----------------------------------
-            generated_image = (
-                generate_creative_image(
-                    variant_prompt
-                )
-            )
-
-            # -----------------------------------
-            # FALLBACK
-            # -----------------------------------
-
-                
-            image_path = (
-
-                    generated_image
-
-                    if generated_image
-
-                    else
-                    f"templates/{ratio}/{template_name}"
-            )
-
-
-
-            # -----------------------------------
-            # VARIANT
-            # -----------------------------------
-            variants.append({
-
-                "name":
-                direction,
-
-                "image":
-                image_path,
-
-                "prompt":
-                variant_prompt,
-
-                "description":
-                description
-            })
-
-        # -----------------------------------
-        # AI STRATEGIST
-        # -----------------------------------
-        strategy_response = safe_generate(
-
-            f"""
-            You are a luxury wellness
-            creative strategist.
-
-            Campaign:
-            {campaign}
-
-            Style:
-            {style}
-
-            Products:
-            {products}
-
-            Template:
-            {template_name}
-
-            Previous Creative Memory:
-            {references}
-
-            Generate:
-
-            1. Premium headline
-            2. Luxury CTA
-            3. Brand positioning
-            4. Emotional direction
-            5. Creative strategy summary
-
-            Keep it cinematic,
-            premium, modern,
-            concise and elegant.
-            """
+            ids=[str(uuid.uuid4())]
         )
 
-        # -----------------------------------
-        # STORE MEMORY
-        # -----------------------------------
-        try:
+        image_path = (
 
-            collection.add(
+            generated_image
 
-                documents=[
+            if generated_image
 
-                    f"""
-                    Campaign:
-                    {campaign}
+            else
+            f"/templates/{ratio}/{template_name}"
+        )
 
-                    Style:
-                    {style}
-
-                    Template:
-                    {template_name}
-
-                    Strategy:
-                    {strategy_response}
-                    """
-                ],
-
-                ids=[str(uuid.uuid4())]
-            )
-
-        except Exception as e:
-
-            print(
-                "MEMORY STORE ERROR:"
-            )
-
-            print(str(e))
-
-        # -----------------------------------
-        # RESPONSE
-        # -----------------------------------
         return {
 
-            "status": "success",
+            "status":
+            "success",
 
-            "campaign":
-            campaign,
+            "generated_image":
+            image_path,
 
-            "variants":
-            variants,
-
-            "strategy":
-            strategy_response
+            "prompt":
+            prompt
         }
 
     except Exception as e:
 
-        print(
-            "AI GENERATION ERROR:"
-        )
-
-        print(str(e))
-
         return {
 
-            "status": "error",
+            "status":
+            "error",
 
-            "variants": [],
-
-            "strategy":
-            "Creative generation failed.",
-
-            "error": str(e)
+            "message":
+            str(e)
         }
 
+# ============================================
+# TEST GEMINI
+# ============================================
 
+@app.get("/test-gemini")
+def test_gemini():
 
-# -----------------------------------
+    response = model.generate_content(
+        "Say CreativeOS is working"
+    )
+
+    return {
+        "response":
+        response.text
+    }
+
+# ============================================
+# RETRIEVE MEMORY
+# ============================================
+
+@app.get("/retrieve")
+def retrieve(
+
+    query: str
+):
+
+    results = collection.query(
+
+        query_texts=[query],
+
+        n_results=5
+    )
+
+    return results
+
+# ============================================
 # GENERATED IMAGE
-# -----------------------------------
+# ============================================
+
 @app.get("/generated-image")
 def get_generated_image():
 
     return FileResponse(
 
-        "/outputs/square_cinematic_generated_ad.png"
-    )
+        os.path.join(
 
+            OUTPUT_DIR,
+
+            "square_cinematic_generated_ad.png"
+        )
+    )
