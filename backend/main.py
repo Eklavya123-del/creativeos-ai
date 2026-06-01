@@ -68,7 +68,7 @@ model = genai.GenerativeModel(
 # CHROMA DB
 # -----------------------------------
 chroma_client = chromadb.PersistentClient(
-    path="/chroma_db"
+    path="chroma_db"
 )
 
 collection = (
