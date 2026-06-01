@@ -1,6 +1,11 @@
-
 import { useEffect, useState } from "react"
 
+interface Template {
+
+  name: string
+
+  image: string
+}
 
 interface Props {
 
@@ -13,7 +18,6 @@ interface Props {
   ) => void
 }
 
-
 function TemplateLibrary({
 
   ratio,
@@ -25,16 +29,55 @@ function TemplateLibrary({
 }: Props) {
 
   const [templates, setTemplates] =
-    useState<string[]>([])
-  const API_URL =
-  import.meta.env.VITE_API_URL
+    useState<Template[]>([])
+
   const [uploading, setUploading] =
     useState(false)
 
+  const API_URL =
+    import.meta.env.VITE_API_URL
 
-  // -----------------------------------
+
+  // ============================================
+  // FETCH TEMPLATES
+  // ============================================
+
+  const fetchTemplates =
+    async () => {
+
+      try {
+
+        const response =
+          await fetch(
+
+            `${API_URL}/template-list/${ratio}`
+          )
+
+        const data =
+          await response.json()
+
+        setTemplates(
+          data.templates || []
+        )
+
+      } catch (error) {
+
+        console.error(error)
+      }
+    }
+
+
+  useEffect(() => {
+
+    fetchTemplates()
+
+  }, [ratio])
+
+
+  // ============================================
   // UPLOAD TEMPLATE
-  // -----------------------------------
+  // ============================================
+
   const uploadTemplate =
     async (
       e: React.ChangeEvent<HTMLInputElement>
@@ -73,19 +116,7 @@ function TemplateLibrary({
           }
         )
 
-        // REFRESH
-        const response =
-          await fetch(
-
-            `${API_URL}/template-list/${ratio}`
-          )
-
-        const data =
-          await response.json()
-
-        setTemplates(
-          data.templates || []
-        )
+        await fetchTemplates()
 
       } catch (error) {
 
@@ -98,39 +129,12 @@ function TemplateLibrary({
     }
 
 
-  // -----------------------------------
-  // FETCH TEMPLATES
-  // -----------------------------------
-  useEffect(() => {
-
-    fetch(
-      `${API_URL}/template-list/${ratio}`
-    )
-
-      .then((res) => res.json())
-
-      .then((data) => {
-
-        setTemplates(
-          data.templates || []
-        )
-      })
-
-      .catch((err) => {
-
-        console.error(err)
-
-        setTemplates([])
-      })
-
-  }, [ratio])
-
-
   return (
 
     <div>
 
       {/* HEADER */}
+
       <div className="
         flex
         items-center
@@ -147,7 +151,7 @@ function TemplateLibrary({
             tracking-[0.2em]
             mb-2
           ">
-            Layout System
+            Layouts
           </p>
 
           <h2 className="
@@ -157,70 +161,76 @@ function TemplateLibrary({
             Templates
           </h2>
 
-          {/* UPLOAD BUTTON */}
-          <label className="
-            inline-flex
-            items-center
-            gap-3
-            mt-4
-            cursor-pointer
-            rounded-[20px]
-            bg-white
-            text-black
-            px-5
-            py-3
-            text-sm
-            font-bold
-            hover:scale-[1.02]
-            transition-all
-          ">
-
-            <input
-
-              type="file"
-
-              accept=".png,.jpg,.jpeg,.webp"
-
-              className="hidden"
-
-              onChange={uploadTemplate}
-            />
-
-            {uploading
-              ? "Uploading..."
-              : "Upload Template"}
-
-          </label>
-
         </div>
 
       </div>
 
 
+      {/* UPLOAD BUTTON */}
+
+      <label className="
+        inline-flex
+        items-center
+        gap-3
+        mb-8
+        cursor-pointer
+        rounded-[20px]
+        bg-white
+        text-black
+        px-5
+        py-3
+        text-sm
+        font-bold
+        hover:scale-[1.02]
+        transition-all
+      ">
+
+        <input
+
+          type="file"
+
+          accept=".png,.jpg,.jpeg,.webp"
+
+          className="hidden"
+
+          onChange={uploadTemplate}
+        />
+
+        {uploading
+          ? "Uploading..."
+          : "Upload Template"}
+
+      </label>
+
+
       {/* GRID */}
+
       <div className="
         grid
-        grid-cols-2
-        gap-4
+        grid-cols-1
+        gap-5
       ">
 
         {templates.map((template) => {
 
           const isSelected =
             selectedTemplate ===
-            template
+            template.name
 
           return (
 
             <div
 
-              key={template}
+              key={template.name}
 
               onClick={() =>
-                onSelect(template)
+                onSelect(
+                  template.name
+                )
               }
 
               className={`
+
                 group
                 cursor-pointer
                 rounded-[28px]
@@ -228,36 +238,37 @@ function TemplateLibrary({
                 border
                 transition-all
                 duration-300
-                bg-white/[0.04]
                 backdrop-blur-xl
                 hover:scale-[1.02]
+                bg-white/[0.04]
 
                 ${
                   isSelected
 
-                  ? "border-white shadow-[0_0_40px_rgba(255,255,255,0.15)]"
+                    ? "border-white shadow-[0_0_40px_rgba(255,255,255,0.15)]"
 
-                  : "border-white/10"
+                    : "border-white/10"
                 }
+
               `}
             >
 
               {/* IMAGE */}
+
               <div className="
-                h-44
                 overflow-hidden
-                bg-[#181818]
+                bg-black
               ">
 
                 <img
 
-                  src={`${API_URL}/templates/${ratio}/${template}`}
+                  src={`${API_URL}${template.image}`}
 
-                  alt={template}
+                  alt={template.name}
 
                   className="
                     w-full
-                    h-full
+                    h-[260px]
                     object-cover
                     transition-all
                     duration-500
@@ -269,24 +280,34 @@ function TemplateLibrary({
 
 
               {/* FOOTER */}
-              <div className="
-                p-5
-              ">
+
+              <div className="p-5">
 
                 <div className="
                   flex
                   items-center
                   justify-between
-                  mb-3
                 ">
 
-                  <p className="
-                    text-sm
-                    text-zinc-300
-                    truncate
-                  ">
-                    {template}
-                  </p>
+                  <div>
+
+                    <p className="
+                      text-sm
+                      text-zinc-300
+                      font-semibold
+                      mb-1
+                    ">
+                      {template.name}
+                    </p>
+
+                    <p className="
+                      text-xs
+                      text-zinc-500
+                    ">
+                      {ratio} layout
+                    </p>
+
+                  </div>
 
                   {isSelected && (
 
@@ -301,13 +322,6 @@ function TemplateLibrary({
 
                 </div>
 
-                <p className="
-                  text-xs
-                  text-zinc-500
-                ">
-                  Cinematic Layout
-                </p>
-
               </div>
 
             </div>
@@ -316,25 +330,8 @@ function TemplateLibrary({
 
       </div>
 
-
-      {/* EMPTY */}
-      {templates.length === 0 && (
-
-        <div className="
-          mt-6
-          text-zinc-500
-          text-sm
-        ">
-
-          No templates found for
-          this ratio.
-
-        </div>
-      )}
-
     </div>
   )
 }
 
 export default TemplateLibrary
-
