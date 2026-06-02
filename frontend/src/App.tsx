@@ -199,13 +199,13 @@ function App() {
 
       formData.append(
         "ratio",
-        ratio
+        ratio.toLowerCase()
       )
 
       formData.append(
-        "style",
-        style
-      )
+  "style",
+  style.toLowerCase()
+)
 
       formData.append(
 

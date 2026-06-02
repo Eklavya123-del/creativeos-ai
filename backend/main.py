@@ -358,13 +358,21 @@ async def generate_ai_creative(
 
     try:
 
-        # ====================================
-        # PARSE PRODUCTS
-        # ====================================
+    # ====================================
+    # PARSE PRODUCTS
+    # ====================================
 
-        products = json.loads(
-            selected_products
-        )
+        if selected_products.startswith("["):
+
+            products = json.loads(
+                selected_products
+            )
+
+        else:
+
+            products = [
+                selected_products
+            ]
 
         if len(products) == 0:
 

@@ -1,4 +1,7 @@
-import { useEffect, useState } from "react"
+import {
+  useEffect,
+  useState
+} from "react"
 
 const API_URL =
   import.meta.env.VITE_API_URL
@@ -34,113 +37,27 @@ function TemplateLibrary({
   const [templates, setTemplates] =
     useState<Template[]>([])
 
-  const [uploading, setUploading] =
-    useState(false)
+  useEffect(() => {
 
-  // ============================================
-  // FETCH TEMPLATES
-  // ============================================
+    fetch(
+      `${API_URL}/template-list/${ratio}`
+    )
 
-  const fetchTemplates =
-    async () => {
+      .then((res) => res.json())
 
-      try {
-
-        const response =
-          await fetch(
-
-            `${API_URL}/template-list/${ratio}`
-          )
-
-        const data =
-          await response.json()
-
-        console.log(
-          "TEMPLATES:",
-          data
-        )
+      .then((data) => {
 
         setTemplates(
           data.templates || []
         )
+      })
 
-      } catch (error) {
+      .catch((err) => {
 
-        console.error(
-          "Template fetch error:",
-          error
-        )
-      }
-    }
-
-  useEffect(() => {
-
-    fetchTemplates()
+        console.error(err)
+      })
 
   }, [ratio])
-
-  // ============================================
-  // UPLOAD TEMPLATE
-  // ============================================
-
-  const uploadTemplate =
-    async (
-      e: React.ChangeEvent<HTMLInputElement>
-    ) => {
-
-      const file =
-        e.target.files?.[0]
-
-      if (!file) return
-
-      try {
-
-        setUploading(true)
-
-        const formData =
-          new FormData()
-
-        formData.append(
-          "file",
-          file
-        )
-
-        formData.append(
-          "ratio",
-          ratio
-        )
-
-        const response =
-          await fetch(
-
-            `${API_URL}/upload-template`,
-
-            {
-              method: "POST",
-
-              body: formData
-            }
-          )
-
-        const data =
-          await response.json()
-
-        console.log(data)
-
-        await fetchTemplates()
-
-      } catch (error) {
-
-        console.error(
-          "Upload template error:",
-          error
-        )
-
-      } finally {
-
-        setUploading(false)
-      }
-    }
 
   return (
 
@@ -149,75 +66,27 @@ function TemplateLibrary({
       {/* HEADER */}
 
       <div className="
-        flex
-        items-center
-        justify-between
         mb-6
       ">
 
-        <div>
+        <p className="
+          text-zinc-500
+          text-sm
+          uppercase
+          tracking-[0.2em]
+          mb-2
+        ">
+          Layout System
+        </p>
 
-          <p className="
-            text-zinc-500
-            text-sm
-            uppercase
-            tracking-[0.2em]
-            mb-2
-          ">
-            Layouts
-          </p>
-
-          <h2 className="
-            text-3xl
-            font-black
-          ">
-            Templates
-          </h2>
-
-        </div>
+        <h2 className="
+          text-3xl
+          font-black
+        ">
+          Templates
+        </h2>
 
       </div>
-
-      {/* UPLOAD */}
-
-      <label className="
-        inline-flex
-        items-center
-        gap-3
-        mb-8
-        cursor-pointer
-        rounded-[20px]
-        bg-white
-        text-black
-        px-5
-        py-3
-        text-sm
-        font-bold
-        hover:scale-[1.02]
-        transition-all
-      ">
-
-        <input
-
-          type="file"
-
-          accept=".png,.jpg,.jpeg,.webp"
-
-          className="hidden"
-
-          onChange={uploadTemplate}
-        />
-
-        {
-
-          uploading
-
-            ? "Uploading..."
-
-            : "Upload Template"
-        }
-
-      </label>
 
       {/* EMPTY */}
 
@@ -234,8 +103,7 @@ function TemplateLibrary({
           <p className="
             text-zinc-500
           ">
-            No templates found for
-            {` ${ratio}`}
+            No templates found
           </p>
 
         </div>
@@ -244,16 +112,13 @@ function TemplateLibrary({
       {/* GRID */}
 
       <div className="
-        grid
-        grid-cols-1
-        gap-5
+        space-y-5
       ">
 
         {templates.map((template) => {
 
           const isSelected =
-            selectedTemplate ===
-            template.name
+            selectedTemplate === template.name
 
           return (
 
@@ -262,41 +127,35 @@ function TemplateLibrary({
               key={template.name}
 
               onClick={() =>
-                onSelect(
-                  template.name
-                )
+                onSelect(template.name)
               }
 
               className={`
-
                 group
                 cursor-pointer
-                rounded-[28px]
                 overflow-hidden
+                rounded-[30px]
                 border
                 transition-all
                 duration-300
-                backdrop-blur-xl
-                hover:scale-[1.02]
                 bg-white/[0.04]
+                hover:scale-[1.02]
 
                 ${
-
                   isSelected
 
                     ? "border-white shadow-[0_0_40px_rgba(255,255,255,0.15)]"
 
                     : "border-white/10"
                 }
-
               `}
             >
 
               {/* IMAGE */}
 
               <div className="
+                relative
                 overflow-hidden
-                bg-black
               ">
 
                 <img
@@ -304,17 +163,6 @@ function TemplateLibrary({
                   src={`${API_URL}${template.image}`}
 
                   alt={template.name}
-
-                  onError={(e) => {
-
-                    console.log(
-                      "IMAGE FAILED:",
-                      template.image
-                    )
-
-                    e.currentTarget.src =
-                      "https://placehold.co/600x400/111/FFF?text=Template"
-                  }}
 
                   className="
                     w-full
@@ -331,47 +179,16 @@ function TemplateLibrary({
               {/* FOOTER */}
 
               <div className="
-                p-5
+                p-4
               ">
 
-                <div className="
-                  flex
-                  items-center
-                  justify-between
+                <p className="
+                  text-sm
+                  text-zinc-300
+                  truncate
                 ">
-
-                  <div>
-
-                    <p className="
-                      text-sm
-                      text-zinc-300
-                      font-semibold
-                      mb-1
-                    ">
-                      {template.name}
-                    </p>
-
-                    <p className="
-                      text-xs
-                      text-zinc-500
-                    ">
-                      {ratio} layout
-                    </p>
-
-                  </div>
-
-                  {isSelected && (
-
-                    <div className="
-                      w-3
-                      h-3
-                      rounded-full
-                      bg-white
-                    " />
-
-                  )}
-
-                </div>
+                  {template.name}
+                </p>
 
               </div>
 
