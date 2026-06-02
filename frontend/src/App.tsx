@@ -1,17 +1,25 @@
 import {
+
   useState
+
 } from "react"
 
 import ProductLibrary from "./components/ProductLibrary"
+
 import TemplateLibrary from "./components/TemplateLibrary"
+
 import CreativeTimeline from "./components/CreativeTimeline"
+
 import GenerationOverlay from "./components/GenerationOverlay"
 
 import Login from "./pages/Login"
+
 import Signup from "./pages/Signup"
+
 
 const API_URL =
   import.meta.env.VITE_API_URL
+
 
 interface TimelineItem {
 
@@ -21,6 +29,7 @@ interface TimelineItem {
 
   timestamp: string
 }
+
 
 function App() {
 
@@ -39,17 +48,12 @@ function App() {
   const [showSignup, setShowSignup] =
     useState(false)
 
+
   // ============================================
-  // APP STATES
+  // STATES
   // ============================================
 
   const [campaign, setCampaign] =
-    useState("")
-
-  const [selectedProducts, setSelectedProducts] =
-    useState<string[]>([])
-
-  const [selectedTemplate, setSelectedTemplate] =
     useState("")
 
   const [ratio, setRatio] =
@@ -64,8 +68,15 @@ function App() {
   const [generatedImage, setGeneratedImage] =
     useState("")
 
+  const [selectedProducts, setSelectedProducts] =
+    useState<string[]>([])
+
+  const [selectedTemplate, setSelectedTemplate] =
+    useState<any>(null)
+
   const [history, setHistory] =
     useState<TimelineItem[]>([])
+
 
   // ============================================
   // AUTH GATE
@@ -116,8 +127,9 @@ function App() {
     )
   }
 
+
   // ============================================
-  // SELECT PRODUCT
+  // PRODUCT SELECT
   // ============================================
 
   const toggleProduct = (
@@ -137,115 +149,154 @@ function App() {
       }
 
       return [
+
         ...prev,
+
         product
       ]
     })
   }
 
+
   // ============================================
   // GENERATE
   // ============================================
 
-  const generateAIWorkflow = async () => {
+  const generateAIWorkflow =
+  async () => {
 
-      try {
+    try {
 
-        setLoading(true)
-
-        const formData =
-          new FormData()
-
-        formData.append(
-          "campaign",
-          campaign
-        )
-
-        formData.append(
-          "ratio",
-          ratio
-        )
-
-        formData.append(
-          "style",
-          style
-        )
-
-        formData.append(
-          "selected_products",
-
-          JSON.stringify(
-            selectedProducts
-          )
-        )
-
-        formData.append(
-          "template_name",
-          selectedTemplate
-        )
-
-        const response =
-          await fetch(
-
-            `${API_URL}/generate-ai-creative`,
-
-            {
-              method: "POST",
-
-              body: formData
-            }
-          )
-
-        const data =
-          await response.json()
-
-        console.log(data)
-
-        if (
-          data.status === "success"
-        ) {
-
-          const imageUrl =
-            `${API_URL}${data.generated_image}`
-
-          setGeneratedImage(
-            imageUrl
-          )
-
-          setHistory((prev) => [
-
-            {
-              campaign,
-              result:
-                "Creative Generated",
-              timestamp:
-                new Date().toLocaleString()
-            },
-
-            ...prev
-          ])
-        }
-
-        else {
-
-          alert(
-            data.message
-          )
-        }
-
-      } catch (error) {
-
-        console.error(error)
+      if (
+        selectedProducts.length === 0
+      ) {
 
         alert(
-          "Generation failed"
+          "Select product"
         )
 
-      } finally {
-
-        setLoading(false)
+        return
       }
+
+      if (!selectedTemplate) {
+
+        alert(
+          "Select template"
+        )
+
+        return
+      }
+
+      setLoading(true)
+
+      const formData =
+        new FormData()
+
+      formData.append(
+        "campaign",
+        campaign
+      )
+
+      formData.append(
+        "ratio",
+        ratio
+      )
+
+      formData.append(
+        "style",
+        style
+      )
+
+      formData.append(
+
+        "selected_products",
+
+        JSON.stringify(
+          selectedProducts
+        )
+      )
+
+      formData.append(
+        "template_name",
+        selectedTemplate
+      )
+
+      console.log(
+        "SENDING:",
+        {
+          campaign,
+          ratio,
+          style,
+          selectedProducts,
+          selectedTemplate
+        }
+      )
+
+      const response =
+        await fetch(
+
+          `${API_URL}/generate-ai-creative`,
+
+          {
+            method: "POST",
+
+            body: formData
+          }
+        )
+
+      const data =
+        await response.json()
+
+      console.log(
+        "GENERATION RESPONSE:",
+        data
+      )
+
+      if (
+        data.status === "success"
+      ) {
+
+        setGeneratedImage(
+
+          `${API_URL}${data.generated_image}`
+        )
+
+        setHistory((prev) => [
+
+          {
+            campaign,
+            result:
+              "Creative generated",
+
+            timestamp:
+              new Date().toLocaleString()
+          },
+
+          ...prev
+        ])
+      }
+
+      else {
+
+        alert(
+          data.message ||
+          "Generation failed"
+        )
+      }
+
+    } catch (error) {
+
+      console.error(error)
+
+      alert(
+        "Server error"
+      )
+
+    } finally {
+
+      setLoading(false)
     }
+  }
 
   // ============================================
   // UI
@@ -254,148 +305,121 @@ function App() {
   return (
 
     <div className="
+
       min-h-screen
       bg-[#050505]
       text-white
       overflow-hidden
     ">
 
-      {/* LOADING */}
+      {/* OVERLAY */}
 
       {loading && (
-
         <GenerationOverlay />
       )}
 
 
-      {/* MAIN LAYOUT */}
+      {/* MAIN */}
 
       <div className="
         flex
       ">
 
-        {/* SIDEBAR */}
+        {/* LEFT */}
 
         <div className="
           w-[420px]
-          min-h-screen
           border-r
           border-white/10
-          p-10
+          min-h-screen
+          p-8
           overflow-y-auto
         ">
 
-          {/* LOGO */}
-
-          <div className="
-            mb-14
+          <p className="
+            text-zinc-500
+            uppercase
+            tracking-[0.3em]
+            text-xs
+            mb-3
           ">
+            AdMate
+          </p>
 
-            <p className="
+          <h1 className="
+            text-5xl
+            font-black
+            leading-none
+            mb-5
+          ">
+            AI Marketing
+            Workspace
+          </h1>
+
+          <p className="
+            text-zinc-500
+            leading-relaxed
+            mb-12
+          ">
+            Generate cinematic
+            premium advertising
+            creatives instantly.
+          </p>
+
+          <button
+
+            onClick={() => {
+
+              localStorage.removeItem(
+                "admate-auth"
+              )
+
+              window.location.reload()
+            }}
+
+            className="
               text-zinc-500
               text-sm
-              uppercase
-              tracking-[0.3em]
-              mb-4
-            ">
-              AI Marketing Workspace
-            </p>
+              hover:text-white
+              transition-all
+              mb-12
+            "
+          >
 
-            <h1 className="
-              text-6xl
-              font-black
-              leading-none
-              mb-8
-            ">
-              AdMate
-            </h1>
+            Logout
 
-            <p className="
-              text-zinc-400
-              leading-relaxed
-              text-lg
-              mb-6
-            ">
-              AI-powered marketing workspace
-              for generating premium cinematic
-              advertising creatives instantly.
-            </p>
-
-            {/* LOGOUT */}
-
-            <button
-
-              onClick={() => {
-
-                localStorage.removeItem(
-                  "admate-auth"
-                )
-
-                window.location.reload()
-              }}
-
-              className="
-                text-zinc-500
-                text-sm
-                hover:text-white
-                transition-all
-              "
-            >
-
-              Logout
-
-            </button>
-
-          </div>
+          </button>
 
 
           {/* CAMPAIGN */}
 
-          <div className="
-            mb-10
-          ">
+          <textarea
 
-            <p className="
-              text-zinc-500
-              text-sm
-              uppercase
-              tracking-[0.2em]
-              mb-4
-            ">
-              Campaign Brief
-            </p>
+            placeholder="
+            Describe your campaign...
+            "
 
-            <textarea
+            value={campaign}
 
-              value={campaign}
+            onChange={(e) =>
+              setCampaign(
+                e.target.value
+              )
+            }
 
-              onChange={(e) =>
-                setCampaign(
-                  e.target.value
-                )
-              }
-
-              placeholder="
-Launch premium sleep gummies
-for modern professionals...
-              "
-
-              className="
-                w-full
-                h-40
-                bg-white/[0.04]
-                border
-                border-white/10
-                rounded-[28px]
-                p-6
-                resize-none
-                outline-none
-                text-zinc-300
-                backdrop-blur-xl
-              "
-            />
-
-          </div>
+            className="
+              w-full
+              h-40
+              bg-white/[0.04]
+              border
+              border-white/10
+              rounded-[24px]
+              p-5
+              resize-none
+              outline-none
+              mb-8
+            "
+          />
 
 
           {/* RATIO */}
@@ -407,11 +431,9 @@ for modern professionals...
             <p className="
               text-zinc-500
               text-sm
-              uppercase
-              tracking-[0.2em]
-              mb-4
+              mb-3
             ">
-              Format
+              Ratio
             </p>
 
             <select
@@ -430,8 +452,8 @@ for modern professionals...
                 border
                 border-white/10
                 rounded-2xl
-                p-5
-                outline-none
+                px-5
+                py-4
               "
             >
 
@@ -465,9 +487,7 @@ for modern professionals...
             <p className="
               text-zinc-500
               text-sm
-              uppercase
-              tracking-[0.2em]
-              mb-4
+              mb-3
             ">
               Style
             </p>
@@ -488,8 +508,8 @@ for modern professionals...
                 border
                 border-white/10
                 rounded-2xl
-                p-5
-                outline-none
+                px-5
+                py-4
               "
             >
 
@@ -501,12 +521,8 @@ for modern professionals...
                 Cinematic
               </option>
 
-              <option value="editorial">
-                Editorial
-              </option>
-
-              <option value="minimal">
-                Minimal
+              <option value="modern">
+                Modern
               </option>
 
             </select>
@@ -514,25 +530,39 @@ for modern professionals...
           </div>
 
 
-          {/* GENERATE BUTTON */}
+          {/* BUTTON */}
 
           <button
 
-            onClick={
-              generateAIWorkflow
-            }
+            onClick={() => {
+
+              if (
+
+                !campaign ||
+
+                selectedProducts.length === 0 ||
+
+                !selectedTemplate
+              ) {
+
+                alert(
+                  "Please select product, template and campaign"
+                )
+
+                return
+              }
+
+              generateAIWorkflow()
+            }}
 
             className="
               w-full
-              py-5
-              rounded-[24px]
               bg-white
               text-black
-              font-black
+              py-5
+              rounded-[24px]
+              font-bold
               text-lg
-              hover:scale-[1.02]
-              transition-all
-              duration-300
             "
           >
 
@@ -543,153 +573,105 @@ for modern professionals...
         </div>
 
 
-        {/* MAIN CONTENT */}
+        {/* CENTER */}
 
         <div className="
           flex-1
-          p-10
+          p-8
           overflow-y-auto
         ">
 
           <div className="
             grid
             grid-cols-2
-            gap-10
+            gap-8
           ">
 
-            {/* LEFT */}
+            <ProductLibrary
+
+              selectedProducts={
+                selectedProducts
+              }
+
+              onSelect={
+                toggleProduct
+              }
+            />
+
+            <TemplateLibrary
+
+              ratio={ratio}
+
+              selectedTemplate={
+                selectedTemplate?.name || ""
+              }
+
+              onSelect={(template) =>
+                setSelectedTemplate(
+                  template
+                )
+              }
+            />
+
+          </div>
+
+
+          {/* GENERATED */}
+
+          {generatedImage && (
 
             <div className="
-              space-y-10
+              mt-10
             ">
 
-              <ProductLibrary
-
-                selectedProducts={
-                  selectedProducts
-                }
-
-                onSelect={
-                  toggleProduct
-                }
-              />
-
-              <TemplateLibrary
-
-                ratio={ratio}
-
-                selectedTemplate={
-                  selectedTemplate
-                }
-
-                onSelect={
-                  setSelectedTemplate
-                }
-              />
-
-            </div>
-
-
-            {/* RIGHT */}
-
-            <div className="
-              space-y-10
-            ">
-
-              {/* GENERATED IMAGE */}
+              <h2 className="
+                text-3xl
+                font-black
+                mb-6
+              ">
+                Generated Creative
+              </h2>
 
               <div className="
-                bg-white/[0.04]
+                rounded-[30px]
+                overflow-hidden
                 border
                 border-white/10
-                rounded-[32px]
-                p-6
-                backdrop-blur-xl
-                overflow-hidden
               ">
 
-                <div className="
-                  flex
-                  items-center
-                  justify-between
-                  mb-6
-                ">
+                <img
 
-                  <div>
+                  src={generatedImage}
 
-                    <p className="
-                      text-zinc-500
-                      text-sm
-                      uppercase
-                      tracking-[0.2em]
-                      mb-2
-                    ">
-                      Output
-                    </p>
+                  alt="Generated"
 
-                    <h2 className="
-                      text-3xl
-                      font-black
-                    ">
-                      Generated Creative
-                    </h2>
-
-                  </div>
-
-                </div>
-
-
-                <div className="
-                  min-h-[600px]
-                  rounded-[24px]
-                  overflow-hidden
-                  flex
-                  items-center
-                  justify-center
-                  bg-black/40
-                ">
-
-                  {generatedImage ? (
-
-                    <img
-
-                      src={generatedImage}
-
-                      alt="Generated"
-
-                      className="
-                        w-full
-                        h-full
-                        object-cover
-                      "
-                    />
-
-                  ) : (
-
-                    <p className="
-                      text-zinc-500
-                    ">
-                      Generated creative
-                      will appear here.
-                    </p>
-
-                  )}
-
-                </div>
+                  className="
+                    w-full
+                  "
+                />
 
               </div>
 
-
-              {/* TIMELINE */}
-
-              <CreativeTimeline
-
-                history={history}
-              />
-
             </div>
+          )}
 
-          </div>
+        </div>
+
+
+        {/* RIGHT */}
+
+        <div className="
+          w-[400px]
+          border-l
+          border-white/10
+          min-h-screen
+          p-8
+          overflow-y-auto
+        ">
+
+          <CreativeTimeline
+            history={history}
+          />
 
         </div>
 

@@ -1,5 +1,8 @@
 import { useEffect, useState } from "react"
 
+const API_URL =
+  import.meta.env.VITE_API_URL
+
 interface Template {
 
   name: string
@@ -34,10 +37,6 @@ function TemplateLibrary({
   const [uploading, setUploading] =
     useState(false)
 
-  const API_URL =
-    import.meta.env.VITE_API_URL
-
-
   // ============================================
   // FETCH TEMPLATES
   // ============================================
@@ -56,23 +55,29 @@ function TemplateLibrary({
         const data =
           await response.json()
 
+        console.log(
+          "TEMPLATES:",
+          data
+        )
+
         setTemplates(
           data.templates || []
         )
 
       } catch (error) {
 
-        console.error(error)
+        console.error(
+          "Template fetch error:",
+          error
+        )
       }
     }
-
 
   useEffect(() => {
 
     fetchTemplates()
 
   }, [ratio])
-
 
   // ============================================
   // UPLOAD TEMPLATE
@@ -105,29 +110,37 @@ function TemplateLibrary({
           ratio
         )
 
-        await fetch(
+        const response =
+          await fetch(
 
-          `${API_URL}/upload-template`,
+            `${API_URL}/upload-template`,
 
-          {
-            method: "POST",
+            {
+              method: "POST",
 
-            body: formData
-          }
-        )
+              body: formData
+            }
+          )
+
+        const data =
+          await response.json()
+
+        console.log(data)
 
         await fetchTemplates()
 
       } catch (error) {
 
-        console.error(error)
+        console.error(
+          "Upload template error:",
+          error
+        )
 
       } finally {
 
         setUploading(false)
       }
     }
-
 
   return (
 
@@ -165,8 +178,7 @@ function TemplateLibrary({
 
       </div>
 
-
-      {/* UPLOAD BUTTON */}
+      {/* UPLOAD */}
 
       <label className="
         inline-flex
@@ -196,12 +208,38 @@ function TemplateLibrary({
           onChange={uploadTemplate}
         />
 
-        {uploading
-          ? "Uploading..."
-          : "Upload Template"}
+        {
+
+          uploading
+
+            ? "Uploading..."
+
+            : "Upload Template"
+        }
 
       </label>
 
+      {/* EMPTY */}
+
+      {templates.length === 0 && (
+
+        <div className="
+          bg-white/[0.04]
+          border
+          border-white/10
+          rounded-[24px]
+          p-6
+        ">
+
+          <p className="
+            text-zinc-500
+          ">
+            No templates found for
+            {` ${ratio}`}
+          </p>
+
+        </div>
+      )}
 
       {/* GRID */}
 
@@ -243,6 +281,7 @@ function TemplateLibrary({
                 bg-white/[0.04]
 
                 ${
+
                   isSelected
 
                     ? "border-white shadow-[0_0_40px_rgba(255,255,255,0.15)]"
@@ -266,6 +305,17 @@ function TemplateLibrary({
 
                   alt={template.name}
 
+                  onError={(e) => {
+
+                    console.log(
+                      "IMAGE FAILED:",
+                      template.image
+                    )
+
+                    e.currentTarget.src =
+                      "https://placehold.co/600x400/111/FFF?text=Template"
+                  }}
+
                   className="
                     w-full
                     h-[260px]
@@ -278,10 +328,11 @@ function TemplateLibrary({
 
               </div>
 
-
               {/* FOOTER */}
 
-              <div className="p-5">
+              <div className="
+                p-5
+              ">
 
                 <div className="
                   flex
