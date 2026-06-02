@@ -1,8 +1,13 @@
+
 from fastapi import APIRouter
 from pydantic import BaseModel
 
 import sqlite3
 import os
+
+# ============================================
+# ROUTER
+# ============================================
 
 router = APIRouter()
 
@@ -10,14 +15,7 @@ router = APIRouter()
 # DATABASE
 # ============================================
 
-BASE_DIR = os.path.dirname(
-    os.path.abspath(__file__)
-)
-
-DB_PATH = os.path.join(
-    BASE_DIR,
-    "auth.db"
-)
+DB_PATH = "auth.db"
 
 conn = sqlite3.connect(
     DB_PATH,
@@ -31,19 +29,18 @@ cursor = conn.cursor()
 # ============================================
 
 cursor.execute(
-
     """
-    INSERT INTO users
-    (username, email, password)
+    CREATE TABLE IF NOT EXISTS users (
 
-    VALUES (?, ?, ?)
-    """,
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
 
-    (
-        data.username,
-        data.email,
-        data.password
+        username TEXT UNIQUE,
+
+        email TEXT,
+
+        password TEXT
     )
+    """
 )
 
 conn.commit()
@@ -102,7 +99,10 @@ def signup(data: SignupRequest):
 
     except Exception as e:
 
-        print("SIGNUP ERROR:", str(e))
+        print(
+            "SIGNUP ERROR:",
+            str(e)
+        )
 
         return {
 
@@ -154,3 +154,4 @@ def login(data: LoginRequest):
         "message":
         "Login successful"
     }
+
