@@ -31,18 +31,19 @@ cursor = conn.cursor()
 # ============================================
 
 cursor.execute(
+
     """
-    CREATE TABLE IF NOT EXISTS users (
+    INSERT INTO users
+    (username, email, password)
 
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+    VALUES (?, ?, ?)
+    """,
 
-        username TEXT UNIQUE,
-
-        email TEXT,
-
-        password TEXT
+    (
+        data.username,
+        data.email,
+        data.password
     )
-    """
 )
 
 conn.commit()
