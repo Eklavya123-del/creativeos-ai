@@ -1,17 +1,12 @@
 import {
+
   useEffect,
   useState
+
 } from "react"
 
 const API_URL =
   import.meta.env.VITE_API_URL
-
-interface Template {
-
-  name: string
-
-  image: string
-}
 
 interface Props {
 
@@ -35,27 +30,47 @@ function TemplateLibrary({
 }: Props) {
 
   const [templates, setTemplates] =
-    useState<Template[]>([])
+    useState<string[]>([])
+
+  // ============================================
+  // FETCH TEMPLATES
+  // ============================================
 
   useEffect(() => {
 
-    fetch(
-      `${API_URL}/template-list/${ratio}`
-    )
+    const fetchTemplates =
+      async () => {
 
-      .then((res) => res.json())
+        try {
 
-      .then((data) => {
+          const response =
+            await fetch(
 
-        setTemplates(
-          data.templates || []
-        )
-      })
+              `${API_URL}/template-list/${ratio.toLowerCase()}`
+            )
 
-      .catch((err) => {
+          const data =
+            await response.json()
 
-        console.error(err)
-      })
+          console.log(
+            "TEMPLATES:",
+            data
+          )
+
+          setTemplates(
+            data.templates || []
+          )
+
+        } catch (error) {
+
+          console.error(
+            "Template fetch error:",
+            error
+          )
+        }
+      }
+
+    fetchTemplates()
 
   }, [ratio])
 
@@ -66,7 +81,7 @@ function TemplateLibrary({
       {/* HEADER */}
 
       <div className="
-        mb-6
+        mb-8
       ">
 
         <p className="
@@ -88,113 +103,92 @@ function TemplateLibrary({
 
       </div>
 
+
       {/* EMPTY */}
 
       {templates.length === 0 && (
 
         <div className="
-          bg-white/[0.04]
-          border
-          border-white/10
-          rounded-[24px]
-          p-6
+          text-zinc-500
         ">
-
-          <p className="
-            text-zinc-500
-          ">
-            No templates found
-          </p>
-
+          No templates found.
         </div>
       )}
 
-      {/* GRID */}
+
+      {/* TEMPLATE GRID */}
 
       <div className="
-        space-y-5
+        space-y-8
       ">
 
-        {templates.map((template) => {
+        {templates.map((template) => (
 
-          const isSelected =
-            selectedTemplate === template.name
+          <div
 
-          return (
+            key={template}
 
-            <div
+            onClick={() =>
+              onSelect(template)
+            }
 
-              key={template.name}
+            className={`
+              relative
+              rounded-[32px]
+              overflow-hidden
+              cursor-pointer
+              border
+              transition-all
+              duration-300
 
-              onClick={() =>
-                onSelect(template.name)
+              ${
+                selectedTemplate === template
+
+                  ? "border-white shadow-[0_0_40px_rgba(255,255,255,0.15)]"
+
+                  : "border-white/10 hover:border-white/30"
               }
+            `}
+          >
 
-              className={`
-                group
-                cursor-pointer
-                overflow-hidden
-                rounded-[30px]
-                border
-                transition-all
-                duration-300
-                bg-white/[0.04]
-                hover:scale-[1.02]
+            {/* TEMPLATE IMAGE */}
 
-                ${
-                  isSelected
+            <img
 
-                    ? "border-white shadow-[0_0_40px_rgba(255,255,255,0.15)]"
+              src={`${API_URL}/templates/${ratio.toLowerCase()}/${template}`}
 
-                    : "border-white/10"
-                }
-              `}
-            >
+              alt={template}
 
-              {/* IMAGE */}
+              className="
+                w-full
+                h-[320px]
+                object-cover
+              "
+            />
 
-              <div className="
-                relative
-                overflow-hidden
+            {/* FOOTER */}
+
+            <div className="
+              absolute
+              bottom-0
+              left-0
+              right-0
+              bg-black/70
+              backdrop-blur-xl
+              p-5
+            ">
+
+              <p className="
+                text-sm
+                text-zinc-300
               ">
-
-                <img
-
-                  src={`${API_URL}${template.image}`}
-
-                  alt={template.name}
-
-                  className="
-                    w-full
-                    h-[260px]
-                    object-cover
-                    transition-all
-                    duration-500
-                    group-hover:scale-105
-                  "
-                />
-
-              </div>
-
-              {/* FOOTER */}
-
-              <div className="
-                p-4
-              ">
-
-                <p className="
-                  text-sm
-                  text-zinc-300
-                  truncate
-                ">
-                  {template.name}
-                </p>
-
-              </div>
+                {template}
+              </p>
 
             </div>
-          )
-        })}
+
+          </div>
+        ))}
 
       </div>
 
