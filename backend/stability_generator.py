@@ -8,76 +8,57 @@ STABILITY_API_KEY = os.getenv(
     "STABILITY_API_KEY"
 )
 
-if not STABILITY_API_KEY:
+# ======================================
+# GENERATE IMAGE
+# ======================================
 
-    raise ValueError(
-        "STABILITY_API_KEY not found"
-    )
+def generate_stability_creative(prompt):
 
+    if not STABILITY_API_KEY:
 
-def generate_stability_creative(
-    prompt: str
-):
+        print(
+            "WARNING: STABILITY_API_KEY missing"
+        )
 
-    api_host = "https://api.stability.ai"
-
-    engine_id = "stable-diffusion-xl-1024-v1-0"
+        return None
 
     response = requests.post(
 
-        f"{api_host}/v1/generation/{engine_id}/text-to-image",
+        "https://api.stability.ai/v2beta/stable-image/generate/core",
 
         headers={
 
-            "Content-Type":
-            "application/json",
+            "authorization":
+            f"Bearer {STABILITY_API_KEY}",
 
-            "Accept":
-            "application/json",
-
-            "Authorization":
-            f"Bearer {STABILITY_API_KEY}"
+            "accept":
+            "image/*"
         },
 
-        json={
+        files={
 
-            "text_prompts": [
+            "none":
+            ""
+        },
 
-                {
-                    "text": prompt,
-                    "weight": 1
-                }
-            ],
+        data={
 
-            "cfg_scale": 7,
+            "prompt":
+            prompt,
 
-            "height": 1024,
-
-            "width": 1024,
-
-            "samples": 1,
-
-            "steps": 30
+            "output_format":
+            "png"
         }
     )
 
     if response.status_code != 200:
 
-        raise Exception(
-            f"Stability API Error: {response.text}"
+        print(
+            "STABILITY ERROR:",
+            response.text
         )
 
-    data = response.json()
-
-    image_base64 = data[
-        "artifacts"
-    ][0]["base64"]
-
-    import base64
-
-    image_bytes = base64.b64decode(
-        image_base64
-    )
+        return None
 
     output_dir = os.path.join(
         os.path.dirname(__file__),
@@ -90,19 +71,15 @@ def generate_stability_creative(
     )
 
     output_path = os.path.join(
-
         output_dir,
-
-        "square_cinematic_generated_ad.png"
+        "generated_ai_creative.png"
     )
 
     with open(
         output_path,
         "wb"
-    ) as f:
+    ) as file:
 
-        f.write(image_bytes)
+        file.write(response.content)
 
-    return (
-        "/outputs/square_cinematic_generated_ad.png"
-    )
+    return "/outputs/generated_ai_creative.png"
