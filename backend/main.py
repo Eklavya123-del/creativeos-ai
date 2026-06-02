@@ -31,11 +31,12 @@ import shutil
 import os
 import json
 import uuid
-
-from gemini_image_generator import (
-    generate_gemini_creative
+from nano_banana import (
+    generate_nano_banana_prompt
 )
-
+from stability_generator import (
+    generate_stability_creative
+)
 # ============================================
 # LOAD ENV
 # ============================================
@@ -465,6 +466,10 @@ async def upload_template(
 # GENERATE AI CREATIVE
 # ============================================
 
+# ============================================
+# GENERATE AI CREATIVE
+# ============================================
+
 @app.post("/generate-ai-creative")
 async def generate_ai_creative(
 
@@ -481,6 +486,10 @@ async def generate_ai_creative(
 
     try:
 
+        # ====================================
+        # PARSE PRODUCTS
+        # ====================================
+
         products = json.loads(
             selected_products
         )
@@ -488,25 +497,19 @@ async def generate_ai_creative(
         if len(products) == 0:
 
             return {
-                "error":
+
+                "status":
+                "error",
+
+                "message":
                 "No product selected"
             }
 
         selected_product = products[0]
 
-        # ====================================
-        # PRODUCT PATH
-        # ====================================
-
-        product_path = os.path.join(
-
-            UPLOAD_DIR,
-            "products",
-            selected_product
-        )
 
         # ====================================
-        # TEMPLATE JSON
+        # TEMPLATE JSON PATH
         # ====================================
 
         template_json_path = os.path.join(
@@ -518,15 +521,27 @@ async def generate_ai_creative(
             f"{os.path.splitext(template_name)[0]}.json"
         )
 
-        with open(
-            template_json_path,
-            "r"
-        ) as f:
-
-            template_data = json.load(f)
 
         # ====================================
-        # CHROMA REFERENCES
+        # LOAD TEMPLATE DATA
+        # ====================================
+
+        template_data = {}
+
+        if os.path.exists(
+            template_json_path
+        ):
+
+            with open(
+                template_json_path,
+                "r"
+            ) as f:
+
+                template_data = json.load(f)
+
+
+        # ====================================
+        # RETRIEVE CREATIVE MEMORY
         # ====================================
 
         results = collection.query(
@@ -548,79 +563,77 @@ async def generate_ai_creative(
 
             references = []
 
-        # ====================================
-        # GEMINI PROMPT
-        # ====================================
-
-        prompt = f"""
-        Create a cinematic premium wellness advertisement.
-
-        Campaign:
-        {campaign}
-
-        Style:
-        {style}
-
-        Ratio:
-        {ratio}
-
-        Template Intelligence:
-        {json.dumps(template_data)}
-
-        Previous Creative Learnings:
-        {references}
-
-        Rules:
-
-        - Place the product naturally on the platform
-        - Maintain cinematic luxury lighting
-        - Product should feel realistic
-        - Premium wellness aesthetic
-        - Scientific modern branding
-        - High-end commercial look
-        - Beautiful typography
-        - Strong composition
-        - Ad should feel award-winning
-        """
 
         # ====================================
-        # GENERATE IMAGE
+        # NANO BANANA PROMPT ENGINE
         # ====================================
 
-        generated = generate_gemini_creative(
+        final_prompt = (
+            generate_nano_banana_prompt(
 
-            campaign_brief=campaign,
+                campaign=campaign,
 
-            headline=campaign,
+                style=style,
 
-            template_style=style,
+                ratio=ratio,
 
-            ratio=ratio,
+                template_data=template_data,
 
-            product_name=selected_product,
-
-            template_data=template_data
+                selected_products=products
+            )
         )
+
+
         # ====================================
-        # SAVE MEMORY
+        # STABILITY IMAGE GENERATION
+        # ====================================
+
+        generated_image = (
+            generate_stability_creative(
+
+                prompt=final_prompt
+            )
+        )
+
+
+        # ====================================
+        # SAVE CREATIVE MEMORY
         # ====================================
 
         collection.add(
 
-            documents=[prompt],
+            documents=[
+
+                f"""
+                Campaign:
+                {campaign}
+
+                Prompt:
+                {final_prompt}
+
+                References:
+                {references}
+                """
+            ],
 
             ids=[str(uuid.uuid4())]
         )
 
-        image_path = (
 
-            generated["frontend_path"]
+        # ====================================
+        # FALLBACK
+        # ====================================
 
-            if generated
+        if not generated_image:
 
-            else
-            f"/templates/{ratio}/{template_name}"
-        )
+            generated_image = (
+                f"/templates/{ratio}/{template_name}"
+            )
+
+
+        # ====================================
+        # RETURN RESPONSE
+        # ====================================
 
         return {
 
@@ -628,13 +641,19 @@ async def generate_ai_creative(
             "success",
 
             "generated_image":
-            image_path,
+            generated_image,
 
             "prompt":
-            prompt
+            final_prompt
         }
 
+
     except Exception as e:
+
+        print(
+            "GENERATION ERROR:",
+            str(e)
+        )
 
         return {
 
