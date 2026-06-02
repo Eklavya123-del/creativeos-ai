@@ -1,3 +1,10 @@
+import os
+import json
+import uuid
+import shutil
+
+from dotenv import load_dotenv
+
 from fastapi import (
     FastAPI,
     UploadFile,
@@ -9,34 +16,28 @@ from fastapi.middleware.cors import (
     CORSMiddleware
 )
 
-from fastapi.staticfiles import (
-    StaticFiles
-)
-
 from fastapi.responses import (
     FileResponse
 )
 
-from pydantic import BaseModel
-
-from PIL import Image
-
-import google.generativeai as genai
-
-from dotenv import load_dotenv
+from fastapi.staticfiles import (
+    StaticFiles
+)
 
 import chromadb
+import google.generativeai as genai
 
-import shutil
-import os
-import json
-import uuid
 from nano_banana import (
     generate_nano_banana_prompt
 )
+
+from auth import router as auth_router
+
+from passlib.hash import bcrypt
 from stability_generator import (
     generate_stability_creative
 )
+
 # ============================================
 # LOAD ENV
 # ============================================
@@ -44,14 +45,30 @@ from stability_generator import (
 load_dotenv()
 
 # ============================================
-# PATHS
+# GEMINI
+# ============================================
+
+genai.configure(
+    api_key=os.getenv(
+        "GEMINI_API_KEY"
+    )
+)
+
+model = genai.GenerativeModel(
+    "gemini-2.5-flash"
+)
+
+# ============================================
+# BASE DIR
 # ============================================
 
 BASE_DIR = os.path.dirname(
     os.path.abspath(__file__)
 )
 
-
+# ============================================
+# PATHS
+# ============================================
 
 UPLOAD_DIR = os.path.join(
     BASE_DIR,
@@ -83,68 +100,8 @@ FONT_DIR = os.path.join(
     "fonts"
 )
 
-
-
-os.makedirs(
-    UPLOAD_DIR,
-    exist_ok=True
-)
-
-os.makedirs(
-    OUTPUT_DIR,
-    exist_ok=True
-)
-
-os.makedirs(
-    os.path.join(
-        UPLOAD_DIR,
-        "products"
-    ),
-    exist_ok=True
-)
-
 # ============================================
-# GEMINI
-# ============================================
-
-genai.configure(
-    api_key=os.getenv(
-        "GEMINI_API_KEY"
-    )
-)
-
-model = genai.GenerativeModel(
-    "gemini-2.5-flash"
-)
-
-# ============================================
-# CHROMA DB
-# ============================================
-
-chroma_client = chromadb.PersistentClient(
-    path=CHROMA_DIR
-)
-
-collection = chroma_client.get_or_create_collection(
-    name="brand_creatives"
-)
-
-# ============================================
-# FASTAPI
-# ============================================
-
-app = FastAPI()
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# ============================================
-# ENSURE DIRECTORIES EXIST
+# ENSURE DIRECTORIES
 # ============================================
 
 os.makedirs(
@@ -177,7 +134,48 @@ os.makedirs(
     exist_ok=True
 )
 
+os.makedirs(
+    os.path.join(
+        UPLOAD_DIR,
+        "products"
+    ),
+    exist_ok=True
+)
 
+# ============================================
+# CHROMA DB
+# ============================================
+
+chroma_client = chromadb.PersistentClient(
+    path=CHROMA_DIR
+)
+
+collection = chroma_client.get_or_create_collection(
+    name="brand_creatives"
+)
+
+# ============================================
+# FASTAPI
+# ============================================
+
+app = FastAPI()
+app.include_router(auth_router)
+# ============================================
+# CORS
+# ============================================
+
+app.add_middleware(
+
+    CORSMiddleware,
+
+    allow_origins=["*"],
+
+    allow_credentials=True,
+
+    allow_methods=["*"],
+
+    allow_headers=["*"]
+)
 
 # ============================================
 # STATIC FILES
@@ -202,14 +200,6 @@ app.mount(
 )
 
 # ============================================
-# MODELS
-# ============================================
-
-class CampaignRequest(BaseModel):
-
-    campaign: str
-
-# ============================================
 # HOME
 # ============================================
 
@@ -217,50 +207,54 @@ class CampaignRequest(BaseModel):
 def home():
 
     return {
+
         "message":
-        "CreativeOS Backend Running"
+        "AdMate AI Backend Running"
     }
 
 # ============================================
-# PRODUCTS
+# TEST GEMINI
+# ============================================
+
+@app.get("/test-gemini")
+def test_gemini():
+
+    response = model.generate_content(
+        "Say AdMate AI is working"
+    )
+
+    return {
+
+        "response":
+        response.text
+    }
+
+# ============================================
+# PRODUCT LIST
 # ============================================
 
 @app.get("/products")
 def get_products():
 
-    products_dir = os.path.join(
+    product_dir = os.path.join(
         UPLOAD_DIR,
         "products"
     )
 
-    if not os.path.exists(
-        products_dir
+    products = []
+
+    if os.path.exists(
+        product_dir
     ):
 
-        return {
-            "products": []
-        }
-
-    products = [
-
-        file
-
-        for file in os.listdir(
-            products_dir
+        products = os.listdir(
+            product_dir
         )
-
-        if file.endswith(
-            (
-                ".png",
-                ".jpg",
-                ".jpeg",
-                ".webp"
-            )
-        )
-    ]
 
     return {
-        "products": products
+
+        "products":
+        products
     }
 
 # ============================================
@@ -274,44 +268,26 @@ def get_templates(
 ):
 
     template_dir = os.path.join(
+
         TEMPLATE_DIR,
+
         ratio
     )
 
-    if not os.path.exists(
-        template_dir
-    ):
-
-        return {
-            "templates": []
-        }
-
     templates = []
 
-    for template_name in os.listdir(
+    if os.path.exists(
         template_dir
     ):
 
-        if template_name.endswith(
-            (
-                ".png",
-                ".jpg",
-                ".jpeg",
-                ".webp"
-            )
-        ):
-
-            templates.append({
-
-                "name":
-                template_name,
-
-                "image":
-                f"/templates/{ratio}/{template_name}"
-            })
+        templates = os.listdir(
+            template_dir
+        )
 
     return {
-        "templates": templates
+
+        "templates":
+        templates
     }
 
 # ============================================
@@ -324,18 +300,22 @@ async def upload_product(
     file: UploadFile = File(...)
 ):
 
-    save_dir = os.path.join(
+    product_dir = os.path.join(
+
         UPLOAD_DIR,
+
         "products"
     )
 
     os.makedirs(
-        save_dir,
+        product_dir,
         exist_ok=True
     )
 
     file_path = os.path.join(
-        save_dir,
+
+        product_dir,
+
         file.filename
     )
 
@@ -357,114 +337,6 @@ async def upload_product(
         "filename":
         file.filename
     }
-
-# ============================================
-# UPLOAD TEMPLATE
-# ============================================
-
-@app.post("/upload-template")
-async def upload_template(
-
-    ratio: str = Form(...),
-
-    file: UploadFile = File(...)
-):
-
-    save_dir = os.path.join(
-        TEMPLATE_DIR,
-        ratio
-    )
-
-    os.makedirs(
-        save_dir,
-        exist_ok=True
-    )
-
-    file_path = os.path.join(
-        save_dir,
-        file.filename
-    )
-
-    with open(
-        file_path,
-        "wb"
-    ) as buffer:
-
-        shutil.copyfileobj(
-            file.file,
-            buffer
-        )
-
-    # CREATE TEMPLATE JSON
-
-    json_dir = os.path.join(
-        TEMPLATE_DATA_DIR,
-        ratio
-    )
-
-    os.makedirs(
-        json_dir,
-        exist_ok=True
-    )
-
-    json_path = os.path.join(
-
-        json_dir,
-
-        f"{os.path.splitext(file.filename)[0]}.json"
-    )
-
-    template_data = {
-
-        "product_zone": {
-
-            "x1": 250,
-            "y1": 580,
-            "x2": 750,
-            "y2": 780
-        },
-
-        "scene_intelligence": {
-
-            "anchor_surface": {
-
-                "x1": 370,
-                "y1": 760,
-                "x2": 930,
-                "y2": 790
-            },
-
-            "scene_type":
-            "podium_showcase",
-
-            "product_type":
-            "bottle"
-        }
-    }
-
-    with open(
-        json_path,
-        "w"
-    ) as f:
-
-        json.dump(
-            template_data,
-            f,
-            indent=4
-        )
-
-    return {
-
-        "status":
-        "success",
-
-        "template":
-        file.filename
-    }
-
-# ============================================
-# GENERATE AI CREATIVE
-# ============================================
 
 # ============================================
 # GENERATE AI CREATIVE
@@ -507,6 +379,31 @@ async def generate_ai_creative(
 
         selected_product = products[0]
 
+        # ====================================
+        # PRODUCT IMAGE PATH
+        # ====================================
+
+        product_path = os.path.join(
+
+            UPLOAD_DIR,
+
+            "products",
+
+            selected_product
+        )
+
+        # ====================================
+        # TEMPLATE IMAGE PATH
+        # ====================================
+
+        template_image_path = os.path.join(
+
+            TEMPLATE_DIR,
+
+            ratio,
+
+            template_name
+        )
 
         # ====================================
         # TEMPLATE JSON PATH
@@ -520,7 +417,6 @@ async def generate_ai_creative(
 
             f"{os.path.splitext(template_name)[0]}.json"
         )
-
 
         # ====================================
         # LOAD TEMPLATE DATA
@@ -539,9 +435,8 @@ async def generate_ai_creative(
 
                 template_data = json.load(f)
 
-
         # ====================================
-        # RETRIEVE CREATIVE MEMORY
+        # CHROMA MEMORY
         # ====================================
 
         results = collection.query(
@@ -563,9 +458,8 @@ async def generate_ai_creative(
 
             references = []
 
-
         # ====================================
-        # NANO BANANA PROMPT ENGINE
+        # FINAL PROMPT
         # ====================================
 
         final_prompt = (
@@ -583,42 +477,51 @@ async def generate_ai_creative(
             )
         )
 
+        # ====================================
+        # RATIO MAP
+        # ====================================
+
+        ratio_map = {
+
+            "square": "1:1",
+
+            "story": "9:16",
+
+            "feed": "4:5",
+
+            "banner": "16:9"
+        }
 
         # ====================================
-        # STABILITY IMAGE GENERATION
+        # STABILITY GENERATION
         # ====================================
 
         generated_image = (
             generate_stability_creative(
 
-                prompt=final_prompt
+                prompt=final_prompt,
+
+                product_image_path=product_path,
+
+                template_image_path=template_image_path,
+
+                ratio=ratio_map.get(
+                    ratio,
+                    "1:1"
+                )
             )
         )
 
-
         # ====================================
-        # SAVE CREATIVE MEMORY
+        # SAVE MEMORY
         # ====================================
 
         collection.add(
 
-            documents=[
-
-                f"""
-                Campaign:
-                {campaign}
-
-                Prompt:
-                {final_prompt}
-
-                References:
-                {references}
-                """
-            ],
+            documents=[final_prompt],
 
             ids=[str(uuid.uuid4())]
         )
-
 
         # ====================================
         # FALLBACK
@@ -630,9 +533,8 @@ async def generate_ai_creative(
                 f"/templates/{ratio}/{template_name}"
             )
 
-
         # ====================================
-        # RETURN RESPONSE
+        # RESPONSE
         # ====================================
 
         return {
@@ -641,19 +543,16 @@ async def generate_ai_creative(
             "success",
 
             "generated_image":
-            generated_image,
-
-            "prompt":
-            final_prompt
+            generated_image
         }
-
 
     except Exception as e:
 
         print(
-            "GENERATION ERROR:",
-            str(e)
+            "GENERATION ERROR:"
         )
+
+        print(str(e))
 
         return {
 
@@ -663,41 +562,6 @@ async def generate_ai_creative(
             "message":
             str(e)
         }
-
-# ============================================
-# TEST GEMINI
-# ============================================
-
-@app.get("/test-gemini")
-def test_gemini():
-
-    response = model.generate_content(
-        "Say CreativeOS is working"
-    )
-
-    return {
-        "response":
-        response.text
-    }
-
-# ============================================
-# RETRIEVE MEMORY
-# ============================================
-
-@app.get("/retrieve")
-def retrieve(
-
-    query: str
-):
-
-    results = collection.query(
-
-        query_texts=[query],
-
-        n_results=5
-    )
-
-    return results
 
 # ============================================
 # GENERATED IMAGE
@@ -712,6 +576,6 @@ def get_generated_image():
 
             OUTPUT_DIR,
 
-            "square_cinematic_generated_ad.png"
+            "generated_ai_creative.png"
         )
     )

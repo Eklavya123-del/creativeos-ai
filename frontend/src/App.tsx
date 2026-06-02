@@ -1,13 +1,53 @@
-import { useState } from "react"
+import {
+
+  useEffect,
+  useState
+
+} from "react"
 
 import ProductLibrary from "./components/ProductLibrary"
 import TemplateLibrary from "./components/TemplateLibrary"
 import CreativeTimeline from "./components/CreativeTimeline"
+import GenerationOverlay from "./components/GenerationOverlay"
+
+import Login from "./pages/Login"
+import Signup from "./pages/Signup"
 
 const API_URL =
   import.meta.env.VITE_API_URL
 
+interface TimelineItem {
+
+  campaign: string
+
+  result: string
+
+  timestamp: string
+}
+
 function App() {
+
+  // ============================================
+  // AUTH
+  // ============================================
+
+  const [authenticated, setAuthenticated] =
+    useState(
+
+      localStorage.getItem(
+        "admate-auth"
+      ) === "true"
+    )
+
+  const [showSignup, setShowSignup] =
+    useState(false)
+
+  // ============================================
+  // APP STATES
+  // ============================================
+
+  const [campaign, setCampaign] =
+    useState("")
 
   const [selectedProducts, setSelectedProducts] =
     useState<string[]>([])
@@ -15,77 +55,104 @@ function App() {
   const [selectedTemplate, setSelectedTemplate] =
     useState("")
 
-  const [generatedImage, setGeneratedImage] =
-    useState("")
+  const [ratio, setRatio] =
+    useState("square")
+
+  const [style, setStyle] =
+    useState("premium")
 
   const [loading, setLoading] =
     useState(false)
 
+  const [generatedImage, setGeneratedImage] =
+    useState("")
+
   const [history, setHistory] =
-    useState<any[]>([])
-
-  const [prompt, setPrompt] =
-    useState(
-      "Launch premium sleep gummies for modern professionals with cinematic wellness aesthetic"
-    )
-
-  const [ratio, setRatio] =
-    useState("square")
-
-  const [creativeStyle, setCreativeStyle] =
-    useState("premium")
-
+    useState<TimelineItem[]>([])
 
   // ============================================
-  // PRODUCT SELECT
+  // AUTH GATE
+  // ============================================
+
+  if (!authenticated) {
+
+    if (showSignup) {
+
+      return (
+
+        <Signup
+
+          onSignup={() => {
+
+            setShowSignup(false)
+          }}
+
+          onBack={() => {
+
+            setShowSignup(false)
+          }}
+        />
+      )
+    }
+
+    return (
+
+      <Login
+
+        onLogin={() => {
+
+          localStorage.setItem(
+
+            "admate-auth",
+
+            "true"
+          )
+
+          setAuthenticated(true)
+        }}
+
+        onSignup={() => {
+
+          setShowSignup(true)
+        }}
+      />
+    )
+  }
+
+  // ============================================
+  // SELECT PRODUCT
   // ============================================
 
   const toggleProduct = (
+
     product: string
   ) => {
 
     setSelectedProducts((prev) => {
 
-      if (prev.includes(product)) {
+      if (
+        prev.includes(product)
+      ) {
 
         return prev.filter(
           (p) => p !== product
         )
       }
 
-      return [...prev, product]
+      return [
+        ...prev,
+        product
+      ]
     })
   }
 
-
   // ============================================
-  // GENERATE AI WORKFLOW
+  // GENERATE
   // ============================================
 
-  const generateAIWorkflow =
-    async () => {
+  const generateAIWorkflow = async () => {
 
       try {
-
-        if (
-          selectedProducts.length === 0
-        ) {
-
-          alert(
-            "Please select a product"
-          )
-
-          return
-        }
-
-        if (!selectedTemplate) {
-
-          alert(
-            "Please select a template"
-          )
-
-          return
-        }
 
         setLoading(true)
 
@@ -94,7 +161,7 @@ function App() {
 
         formData.append(
           "campaign",
-          prompt
+          campaign
         )
 
         formData.append(
@@ -104,11 +171,12 @@ function App() {
 
         formData.append(
           "style",
-          creativeStyle
+          style
         )
 
         formData.append(
           "selected_products",
+
           JSON.stringify(
             selectedProducts
           )
@@ -126,6 +194,7 @@ function App() {
 
             {
               method: "POST",
+
               body: formData
             }
           )
@@ -135,7 +204,9 @@ function App() {
 
         console.log(data)
 
-        if (data.generated_image) {
+        if (
+          data.status === "success"
+        ) {
 
           const imageUrl =
             `${API_URL}${data.generated_image}`
@@ -147,14 +218,22 @@ function App() {
           setHistory((prev) => [
 
             {
-              image: imageUrl,
-              prompt,
-              ratio,
-              style: creativeStyle
+              campaign,
+              result:
+                "Creative Generated",
+              timestamp:
+                new Date().toLocaleString()
             },
 
             ...prev
           ])
+        }
+
+        else {
+
+          alert(
+            data.message
+          )
         }
 
       } catch (error) {
@@ -171,390 +250,449 @@ function App() {
       }
     }
 
+  // ============================================
+  // UI
+  // ============================================
 
   return (
 
     <div className="
       min-h-screen
-      bg-black
+      bg-[#050505]
       text-white
-      flex
       overflow-hidden
     ">
 
-      {/* LEFT PANEL */}
+      {/* LOADING */}
+
+      {loading && (
+
+        <GenerationOverlay />
+      )}
+
+
+      {/* MAIN LAYOUT */}
 
       <div className="
-        w-[340px]
-        border-r
-        border-white/10
-        p-8
-        overflow-y-auto
-        bg-gradient-to-b
-        from-[#0f0f14]
-        to-black
+        flex
       ">
 
-        <p className="
-          text-xs
-          tracking-[0.4em]
-          uppercase
-          text-zinc-500
-          mb-6
-        ">
-          AI Creative Workflow
-        </p>
-
-        <h1 className="
-          text-6xl
-          font-black
-          leading-none
-          mb-8
-        ">
-          CreativeOS
-        </h1>
-
-        <p className="
-          text-zinc-500
-          text-lg
-          leading-relaxed
-          mb-14
-        ">
-          AI-powered cinematic campaign
-          generation workspace for modern
-          wellness brands.
-        </p>
-
-
-        {/* PROMPT */}
-
-        <div className="mb-10">
-
-          <p className="
-            text-xs
-            uppercase
-            tracking-[0.3em]
-            text-zinc-500
-            mb-4
-          ">
-            Campaign Brief
-          </p>
-
-          <textarea
-
-            value={prompt}
-
-            onChange={(e) =>
-              setPrompt(
-                e.target.value
-              )
-            }
-
-            className="
-              w-full
-              h-40
-              rounded-[30px]
-              bg-white/[0.04]
-              border
-              border-white/10
-              p-6
-              text-zinc-300
-              resize-none
-              outline-none
-              focus:border-white/30
-            "
-          />
-
-        </div>
-
-
-        {/* RATIO */}
-
-        <div className="mb-8">
-
-          <p className="
-            text-xs
-            uppercase
-            tracking-[0.3em]
-            text-zinc-500
-            mb-4
-          ">
-            Output Ratio
-          </p>
-
-          <select
-
-            value={ratio}
-
-            onChange={(e) =>
-              setRatio(
-                e.target.value
-              )
-            }
-
-            className="
-              w-full
-              rounded-[24px]
-              bg-white/[0.04]
-              border
-              border-white/10
-              p-5
-              outline-none
-            "
-          >
-
-            <option value="square">
-              Square
-            </option>
-
-            <option value="story">
-              Story
-            </option>
-
-            <option value="feed">
-              Feed
-            </option>
-
-            <option value="banner">
-              Banner
-            </option>
-
-          </select>
-
-        </div>
-
-
-        {/* STYLE */}
-
-        <div className="mb-10">
-
-          <p className="
-            text-xs
-            uppercase
-            tracking-[0.3em]
-            text-zinc-500
-            mb-4
-          ">
-            Creative Direction
-          </p>
-
-          <select
-
-            value={creativeStyle}
-
-            onChange={(e) =>
-              setCreativeStyle(
-                e.target.value
-              )
-            }
-
-            className="
-              w-full
-              rounded-[24px]
-              bg-white/[0.04]
-              border
-              border-white/10
-              p-5
-              outline-none
-            "
-          >
-
-            <option value="premium">
-              Premium
-            </option>
-
-            <option value="cinematic">
-              Cinematic
-            </option>
-
-            <option value="luxury">
-              Luxury
-            </option>
-
-            <option value="minimal">
-              Minimal
-            </option>
-
-          </select>
-
-        </div>
-
-
-        {/* GENERATE BUTTON */}
-
-        <button
-
-          onClick={generateAIWorkflow}
-
-          disabled={loading}
-
-          className="
-            w-full
-            py-7
-            rounded-[30px]
-            bg-white
-            text-black
-            text-2xl
-            font-black
-            hover:scale-[1.02]
-            transition-all
-            disabled:opacity-50
-            mb-16
-          "
-        >
-
-          {loading
-            ? "Generating..."
-            : "Generate AI Campaign"}
-
-        </button>
-
-
-        {/* TIMELINE */}
-
-        <div>
-
-          <p className="
-            text-xs
-            uppercase
-            tracking-[0.3em]
-            text-zinc-500
-            mb-5
-          ">
-            Workflow Memory
-          </p>
-
-          <CreativeTimeline
-            history={history}
-          />
-
-        </div>
-
-      </div>
-
-
-      {/* CENTER PANEL */}
-
-      <div className="
-        flex-1
-        p-10
-        overflow-y-auto
-      ">
-
-        <p className="
-          text-xs
-          uppercase
-          tracking-[0.3em]
-          text-zinc-500
-          mb-5
-        ">
-          AI Workspace
-        </p>
-
-        <h2 className="
-          text-6xl
-          font-black
-          mb-10
-        ">
-          Creative Directions
-        </h2>
-
+        {/* SIDEBAR */}
 
         <div className="
-          w-full
-          rounded-[40px]
-          border
+          w-[420px]
+          min-h-screen
+          border-r
           border-white/10
-          bg-[#050505]
-          min-h-[760px]
-          flex
-          items-center
-          justify-center
-          overflow-hidden
-          relative
+          p-10
+          overflow-y-auto
         ">
 
-          {generatedImage ? (
+          {/* LOGO */}
 
-            <img
+          <div className="
+            mb-14
+          ">
 
-              src={generatedImage}
+            <p className="
+              text-zinc-500
+              text-sm
+              uppercase
+              tracking-[0.3em]
+              mb-4
+            ">
+              AI Marketing Workspace
+            </p>
 
-              alt="Generated Creative"
+            <h1 className="
+              text-6xl
+              font-black
+              leading-none
+              mb-8
+            ">
+              AdMate
+            </h1>
+
+            <p className="
+              text-zinc-400
+              leading-relaxed
+              text-lg
+              mb-6
+            ">
+              AI-powered marketing workspace
+              for generating premium cinematic
+              advertising creatives instantly.
+            </p>
+
+            {/* LOGOUT */}
+
+            <button
+
+              onClick={() => {
+
+                localStorage.removeItem(
+                  "admate-auth"
+                )
+
+                window.location.reload()
+              }}
+
+              className="
+                text-zinc-500
+                text-sm
+                hover:text-white
+                transition-all
+              "
+            >
+
+              Logout
+
+            </button>
+
+          </div>
+
+
+          {/* CAMPAIGN */}
+
+          <div className="
+            mb-10
+          ">
+
+            <p className="
+              text-zinc-500
+              text-sm
+              uppercase
+              tracking-[0.2em]
+              mb-4
+            ">
+              Campaign Brief
+            </p>
+
+            <textarea
+
+              value={campaign}
+
+              onChange={(e) =>
+                setCampaign(
+                  e.target.value
+                )
+              }
+
+              placeholder="
+Launch premium sleep gummies
+for modern professionals...
+              "
 
               className="
                 w-full
-                h-full
-                object-contain
+                h-40
+                bg-white/[0.04]
+                border
+                border-white/10
+                rounded-[28px]
+                p-6
+                resize-none
+                outline-none
+                text-zinc-300
+                backdrop-blur-xl
               "
             />
 
-          ) : (
+          </div>
 
-            <div className="text-center">
 
-              <h3 className="
-                text-5xl
-                font-black
-                mb-4
-              ">
-                Creative Workspace
-              </h3>
+          {/* RATIO */}
 
-              <p className="
-                text-zinc-500
-                text-xl
-              ">
-                Generate cinematic AI-powered
-                campaign directions to begin.
-              </p>
+          <div className="
+            mb-8
+          ">
 
-            </div>
-          )}
+            <p className="
+              text-zinc-500
+              text-sm
+              uppercase
+              tracking-[0.2em]
+              mb-4
+            ">
+              Format
+            </p>
+
+            <select
+
+              value={ratio}
+
+              onChange={(e) =>
+                setRatio(
+                  e.target.value
+                )
+              }
+
+              className="
+                w-full
+                bg-white/[0.04]
+                border
+                border-white/10
+                rounded-2xl
+                p-5
+                outline-none
+              "
+            >
+
+              <option value="square">
+                Square
+              </option>
+
+              <option value="story">
+                Story
+              </option>
+
+              <option value="feed">
+                Feed
+              </option>
+
+              <option value="banner">
+                Banner
+              </option>
+
+            </select>
+
+          </div>
+
+
+          {/* STYLE */}
+
+          <div className="
+            mb-10
+          ">
+
+            <p className="
+              text-zinc-500
+              text-sm
+              uppercase
+              tracking-[0.2em]
+              mb-4
+            ">
+              Style
+            </p>
+
+            <select
+
+              value={style}
+
+              onChange={(e) =>
+                setStyle(
+                  e.target.value
+                )
+              }
+
+              className="
+                w-full
+                bg-white/[0.04]
+                border
+                border-white/10
+                rounded-2xl
+                p-5
+                outline-none
+              "
+            >
+
+              <option value="premium">
+                Premium
+              </option>
+
+              <option value="cinematic">
+                Cinematic
+              </option>
+
+              <option value="editorial">
+                Editorial
+              </option>
+
+              <option value="minimal">
+                Minimal
+              </option>
+
+            </select>
+
+          </div>
+
+
+          {/* GENERATE BUTTON */}
+
+          <button
+
+            onClick={
+              generateAIWorkflow
+            }
+
+            className="
+              w-full
+              py-5
+              rounded-[24px]
+              bg-white
+              text-black
+              font-black
+              text-lg
+              hover:scale-[1.02]
+              transition-all
+              duration-300
+            "
+          >
+
+            Generate Creative
+
+          </button>
 
         </div>
 
-      </div>
+
+        {/* MAIN CONTENT */}
+
+        <div className="
+          flex-1
+          p-10
+          overflow-y-auto
+        ">
+
+          <div className="
+            grid
+            grid-cols-2
+            gap-10
+          ">
+
+            {/* LEFT */}
+
+            <div className="
+              space-y-10
+            ">
+
+              <ProductLibrary
+
+                selectedProducts={
+                  selectedProducts
+                }
+
+                onSelect={
+                  toggleProduct
+                }
+              />
+
+              <TemplateLibrary
+
+                ratio={ratio}
+
+                selectedTemplate={
+                  selectedTemplate
+                }
+
+                onSelect={
+                  setSelectedTemplate
+                }
+              />
+
+            </div>
 
 
-      {/* RIGHT PANEL */}
+            {/* RIGHT */}
 
-      <div className="
-        w-[420px]
-        border-l
-        border-white/10
-        p-8
-        overflow-y-auto
-        bg-gradient-to-b
-        from-black
-        to-[#04101f]
-      ">
+            <div className="
+              space-y-10
+            ">
 
-        <ProductLibrary
+              {/* GENERATED IMAGE */}
 
-          selectedProducts={
-            selectedProducts
-          }
+              <div className="
+                bg-white/[0.04]
+                border
+                border-white/10
+                rounded-[32px]
+                p-6
+                backdrop-blur-xl
+                overflow-hidden
+              ">
 
-          onSelect={
-            toggleProduct
-          }
-        />
+                <div className="
+                  flex
+                  items-center
+                  justify-between
+                  mb-6
+                ">
 
-        <div className="mt-16">
+                  <div>
 
-          <TemplateLibrary
+                    <p className="
+                      text-zinc-500
+                      text-sm
+                      uppercase
+                      tracking-[0.2em]
+                      mb-2
+                    ">
+                      Output
+                    </p>
 
-            ratio={ratio}
+                    <h2 className="
+                      text-3xl
+                      font-black
+                    ">
+                      Generated Creative
+                    </h2>
 
-            selectedTemplate={
-              selectedTemplate
-            }
+                  </div>
 
-            onSelect={
-              setSelectedTemplate
-            }
-          />
+                </div>
+
+
+                <div className="
+                  min-h-[600px]
+                  rounded-[24px]
+                  overflow-hidden
+                  flex
+                  items-center
+                  justify-center
+                  bg-black/40
+                ">
+
+                  {generatedImage ? (
+
+                    <img
+
+                      src={generatedImage}
+
+                      alt="Generated"
+
+                      className="
+                        w-full
+                        h-full
+                        object-cover
+                      "
+                    />
+
+                  ) : (
+
+                    <p className="
+                      text-zinc-500
+                    ">
+                      Generated creative
+                      will appear here.
+                    </p>
+
+                  )}
+
+                </div>
+
+              </div>
+
+
+              {/* TIMELINE */}
+
+              <CreativeTimeline
+
+                history={history}
+              />
+
+            </div>
+
+          </div>
 
         </div>
 

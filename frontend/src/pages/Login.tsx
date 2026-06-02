@@ -1,279 +1,281 @@
+import {
 
-import { useState } from "react"
+  useState
 
+} from "react"
+
+import loginImage from "../assets/login.png"
+
+import ForgotPasswordPopup from "../components/ForgotPasswordPopup"
+
+const API_URL =
+  import.meta.env.VITE_API_URL
 
 interface Props {
 
   onLogin: () => void
-}
 
+  onSignup: () => void
+}
 
 function Login({
 
-  onLogin
+  onLogin,
+
+  onSignup
 
 }: Props) {
 
-  const [username, setUsername] =
+  const [email, setEmail] =
     useState("")
 
   const [password, setPassword] =
     useState("")
 
-  const [error, setError] =
-    useState("")
+  const [failedAttempts, setFailedAttempts] =
+    useState(0)
 
+  const [showForgot, setShowForgot] =
+    useState(false)
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
 
-    if (
+  try {
 
-      username === "Mohit Batra" &&
-      password === "1"
+    const response = await fetch(
 
-    ) {
+      `${API_URL}/login`,
 
-      onLogin()
+      {
+        method: "POST",
 
-    }
+        headers: {
+          "Content-Type":
+            "application/json"
+        },
 
-    else if (
+        body: JSON.stringify({
 
-      username === "Samriddhi" &&
-      password === "HR"
+  username: email,
+  password
+})
+      }
+    )
 
-    ) {
+    const data =
+      await response.json()
 
-      onLogin()
+    if (!response.ok) {
 
-    }
+      setFailedAttempts(
+        (prev) => prev + 1
+      )
 
-    else if (
+      alert(
 
-      username === "Eklavya" &&
-      password === "DEV"
+        data.detail ||
 
-    ) {
+        data.message ||
 
-      onLogin()
-
-    }
-
-    else if (
-
-      username === "Khushi" &&
-      password === "Queen"
-
-    ) {
-
-      onLogin()
-
-    }
-
-    else {
-
-      setError(
         "Invalid credentials"
       )
+
+      return
     }
+
+    alert(
+      data.message
+    )
+
+    onLogin()
+
+  } catch (error) {
+
+    console.error(error)
+
+    alert(
+      "Server error"
+    )
   }
-
-
+}
   return (
 
     <div className="
       min-h-screen
-      bg-black
-      text-white
       flex
-      items-center
-      justify-center
-      px-6
+      bg-white
     ">
 
+      {/* LEFT */}
+
       <div className="
-        w-full
-        max-w-md
-        bg-white/[0.04]
-        border
-        border-white/10
-        backdrop-blur-2xl
-        rounded-[40px]
-        p-10
-        shadow-2xl
+        w-1/2
+        flex
+        items-center
+        justify-center
       ">
 
-        {/* LOGO */}
         <div className="
-          mb-10
+          w-[420px]
         ">
 
           <p className="
             text-zinc-500
-            uppercase
-            tracking-[0.3em]
-            text-xs
-            mb-4
+            mb-3
           ">
-            CreativeOS AI
+            Start your journey
           </p>
 
           <h1 className="
             text-5xl
             font-black
-            leading-none
-            mb-4
+            mb-12
           ">
-            Welcome
+            Welcome to AdMate
           </h1>
 
-          <p className="
-            text-zinc-400
-            leading-relaxed
+          <div className="
+            space-y-6
           ">
-            AI-powered creative
-            workflow operating system
-            for modern wellness brands.
-          </p>
 
-        </div>
+            <input
 
+              placeholder="E-mail"
 
-        {/* USERNAME */}
-        <div className="
-          mb-5
-        ">
+              value={email}
 
-          <label className="
-            text-sm
-            text-zinc-500
-            block
-            mb-3
-          ">
-            Username
-          </label>
+              onChange={(e) =>
+                setEmail(
+                  e.target.value
+                )
+              }
 
-          <input
+              className="
+                w-full
+                border
+                rounded-2xl
+                px-5
+                py-5
+              "
+            />
 
-            type="text"
+            <input
 
-            value={username}
+              type="password"
 
-            onChange={(e) =>
-              setUsername(
-                e.target.value
-              )
-            }
+              placeholder="Password"
+
+              value={password}
+
+              onChange={(e) =>
+                setPassword(
+                  e.target.value
+                )
+              }
+
+              className="
+                w-full
+                border
+                rounded-2xl
+                px-5
+                py-5
+              "
+            />
+
+            <button
+
+              onClick={handleLogin}
+
+              className="
+                w-full
+                bg-blue-500
+                text-white
+                py-5
+                rounded-2xl
+                font-bold
+              "
+            >
+              Login
+            </button>
+            <button
+
+            onClick={onSignup}
 
             className="
-              w-full
-              bg-black/40
-              border
-              border-white/10
-              rounded-[20px]
-              px-5
-              py-4
-              outline-none
-              focus:border-white/30
-              transition-all
+              text-blue-500
+              font-medium
+              mt-5
             "
+          >
 
-            placeholder="
-              Enter username
-            "
-          />
+            Create Account
+
+          </button>
+            {failedAttempts >= 2 && (
+
+              <button
+
+                onClick={() =>
+                  setShowForgot(true)
+                }
+
+                className="
+                  text-blue-500
+                  font-medium
+                "
+              >
+                Forgot credentials?
+              </button>
+            )}
+
+          </div>
 
         </div>
 
-
-        {/* PASSWORD */}
-        <div className="
-          mb-8
-        ">
-
-          <label className="
-            text-sm
-            text-zinc-500
-            block
-            mb-3
-          ">
-            Password
-          </label>
-
-          <input
-
-            type="password"
-
-            value={password}
-
-            onChange={(e) =>
-              setPassword(
-                e.target.value
-              )
-            }
-
-            className="
-              w-full
-              bg-black/40
-              border
-              border-white/10
-              rounded-[20px]
-              px-5
-              py-4
-              outline-none
-              focus:border-white/30
-              transition-all
-            "
-
-            placeholder="
-              Enter password
-            "
-          />
-
-        </div>
+      </div>
 
 
-        {/* ERROR */}
-        {error && (
+      {/* RIGHT */}
 
-          <p className="
-            text-red-400
-            text-sm
-            mb-5
-          ">
-            {error}
-          </p>
+      <div className="
+        w-1/2
+        h-screen
+      ">
 
-        )}
+        <img
 
+          src={loginImage}
 
-        {/* BUTTON */}
-        <button
-
-          onClick={handleLogin}
+          alt="Login"
 
           className="
             w-full
-            bg-white
-            text-black
-            py-4
-            rounded-[20px]
-            font-black
-            text-lg
-            hover:scale-[1.02]
-            transition-all
+            h-full
+            object-cover
           "
-        >
-
-          Enter CreativeOS
-
-        </button>
+        />
 
       </div>
+
+
+      {showForgot && (
+
+        <ForgotPasswordPopup
+
+          onClose={() => {
+
+            localStorage.setItem(
+              "admate-auth",
+              "true"
+            )
+
+            onLogin()
+          }}
+        />
+      )}
 
     </div>
   )
 }
 
 export default Login
-
