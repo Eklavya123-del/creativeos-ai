@@ -1,252 +1,108 @@
 import os
 import requests
-
 from dotenv import load_dotenv
 
 load_dotenv()
-# ==========================================
-# ENV VARIABLES
-# ==========================================
 
 STABILITY_API_KEY = os.getenv(
     "STABILITY_API_KEY"
 )
 
-
-# ==========================================
-# VALIDATE API KEY
-# ==========================================
-
 if not STABILITY_API_KEY:
 
     raise ValueError(
-        "STABILITY_API_KEY not found in environment variables"
+        "STABILITY_API_KEY not found"
     )
 
 
-# ==========================================
-# MAIN GENERATION FUNCTION
-# ==========================================
-
 def generate_stability_creative(
-
-    campaign_brief: str,
-
-    headline: str,
-
-    template_style: str,
-
-    ratio: str,
-
-    product_name: str,
-
-    template_data: dict = None
+    prompt: str
 ):
 
-    try:
+    api_host = "https://api.stability.ai"
 
-        # ======================================
-        # RATIO MAP
-        # ======================================
+    engine_id = "stable-diffusion-xl-1024-v1-0"
 
-        ratio_map = {
+    response = requests.post(
 
-            "story": "9:16",
+        f"{api_host}/v1/generation/{engine_id}/text-to-image",
 
-            "square": "1:1",
+        headers={
 
-            "feed": "4:5",
+            "Content-Type":
+            "application/json",
 
-            "banner": "16:9"
+            "Accept":
+            "application/json",
+
+            "Authorization":
+            f"Bearer {STABILITY_API_KEY}"
+        },
+
+        json={
+
+            "text_prompts": [
+
+                {
+                    "text": prompt,
+                    "weight": 1
+                }
+            ],
+
+            "cfg_scale": 7,
+
+            "height": 1024,
+
+            "width": 1024,
+
+            "samples": 1,
+
+            "steps": 30
         }
+    )
 
-        aspect_ratio = ratio_map.get(
-            ratio,
-            "1:1"
+    if response.status_code != 200:
+
+        raise Exception(
+            f"Stability API Error: {response.text}"
         )
 
+    data = response.json()
 
-        # ======================================
-        # TEMPLATE INTELLIGENCE
-        # ======================================
+    image_base64 = data[
+        "artifacts"
+    ][0]["base64"]
 
-        template_context = ""
+    import base64
 
-        if template_data:
+    image_bytes = base64.b64decode(
+        image_base64
+    )
 
-            template_context = f"""
+    output_dir = os.path.join(
+        os.path.dirname(__file__),
+        "outputs"
+    )
 
-            TEMPLATE INTELLIGENCE:
+    os.makedirs(
+        output_dir,
+        exist_ok=True
+    )
 
-            Product Zone:
-            {template_data.get("product_zone")}
+    output_path = os.path.join(
 
-            Scene Intelligence:
-            {template_data.get("scene_intelligence")}
+        output_dir,
 
-            Style:
-            {template_data.get("style")}
+        "square_cinematic_generated_ad.png"
+    )
 
-            Lighting:
-            {template_data.get("lighting")}
+    with open(
+        output_path,
+        "wb"
+    ) as f:
 
-            Composition:
-            {template_data.get("composition_type")}
+        f.write(image_bytes)
 
-            """
-        
-
-        # ======================================
-        # FINAL PROMPT
-        # ======================================
-
-        prompt = f"""
-
-        Create a premium wellness supplement advertisement.
-
-        Campaign:
-        {campaign_brief}
-
-        Headline:
-        {headline}
-
-        Product:
-        {product_name}
-
-        Style:
-        {template_style}
-
-        Ratio:
-        {ratio}
-
-        {template_context}
-
-        REQUIREMENTS:
-
-        - cinematic luxury advertising
-        - realistic product placement
-        - realistic shadows
-        - elegant depth
-        - premium commercial photography
-        - modern wellness branding
-        - award-winning advertising
-        - clean typography hierarchy
-        - luxury composition
-        - realistic lighting
-        - ultra aesthetic
-        - social media campaign quality
-        - highly realistic product photography
-
-        """
-
-
-        # ======================================
-        # STABILITY API REQUEST
-        # ======================================
-
-        response = requests.post(
-
-            "https://api.stability.ai/v2beta/stable-image/generate/core",
-
-            headers={
-
-                "Authorization":
-                f"Bearer {STABILITY_API_KEY}",
-
-                "Accept":
-                "image/*"
-            },
-
-            files={
-
-                "none": ("", "")
-            },
-
-            data={
-
-                "prompt":
-                prompt,
-
-                "aspect_ratio":
-                aspect_ratio,
-
-                "output_format":
-                "png"
-            },
-
-            timeout=120
-        )
-
-
-        # ======================================
-        # ERROR HANDLING
-        # ======================================
-
-        if response.status_code != 200:
-
-            raise Exception(
-
-                f"Stability API Error: "
-                f"{response.status_code} "
-                f"{response.text}"
-            )
-
-
-        # ======================================
-        # OUTPUT DIRECTORY
-        # ======================================
-
-        base_dir = os.path.dirname(
-            os.path.abspath(__file__)
-        )
-
-        output_dir = os.path.join(
-
-            base_dir,
-
-            "outputs"
-        )
-
-        os.makedirs(
-
-            output_dir,
-
-            exist_ok=True
-        )
-
-
-        # ======================================
-        # SAVE IMAGE
-        # ======================================
-
-        output_path = os.path.join(
-
-            output_dir,
-
-            "generated_ai_creative.png"
-        )
-
-        with open(
-
-            output_path,
-
-            "wb"
-        ) as file:
-
-            file.write(response.content)
-
-
-        # ======================================
-        # RETURN FRONTEND PATH
-        # ======================================
-
-        return "/outputs/generated_ai_creative.png"
-
-    except Exception as e:
-
-        print(
-            "IMAGE GENERATION ERROR:",
-            str(e)
-        )
-
-        return None
+    return (
+        "/outputs/square_cinematic_generated_ad.png"
+    )
