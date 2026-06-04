@@ -1,0 +1,14 @@
+{
+    "scene_intelligence": {
+        "scene_type": "premium podium",
+        "product_type": "supplement bottle"
+    },
+    "placement": {
+        "product_x": 0.5,
+        "product_y": 0.42,
+        "product_scale": 0.5
+    },
+    "lighting": "cinematic lighting",
+    "composition_type": "premium product advertisement",
+    "style": "luxury wellness"
+}

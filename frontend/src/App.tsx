@@ -602,9 +602,7 @@ function App() {
 
               ratio={ratio}
 
-              selectedTemplate={
-                selectedTemplate?.name || ""
-              }
+              selectedTemplate={selectedTemplate || ""}
 
               onSelect={(template) =>
                 setSelectedTemplate(

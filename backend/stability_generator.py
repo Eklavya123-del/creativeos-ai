@@ -9,17 +9,16 @@ STABILITY_API_KEY = os.getenv(
     "STABILITY_API_KEY"
 )
 
-# ======================================
-# GENERATE CREATIVE
-# ======================================
 
 def generate_stability_creative(
 
     prompt,
-    product_image_path,
-    template_image_path,
-    ratio="1:1"
 
+    product_image_path,
+
+    template_image_path,
+
+    ratio="1:1"
 ):
 
     try:
@@ -32,82 +31,71 @@ def generate_stability_creative(
 
             return None
 
-        # ======================================
-        # OPEN PRODUCT IMAGE
-        # ======================================
+        response = requests.post(
 
-        with open(
-            product_image_path,
-            "rb"
-        ) as product_file:
+            "https://api.stability.ai/v2beta/stable-image/generate/core",
 
-            response = requests.post(
+            headers={
 
-                "https://api.stability.ai/v2beta/stable-image/generate/sd3",
+                "authorization":
+                f"Bearer {STABILITY_API_KEY}",
 
-                headers={
+                "accept":
+                "image/*"
+            },
 
-                    "authorization":
-                    f"Bearer {STABILITY_API_KEY}",
+            data={
 
-                    "accept":
-                    "image/*"
-                },
+                "prompt":
+                f"""
 
-                files={
+                Create a premium cinematic
+                wellness advertising environment.
 
-                    "image": (
-                        os.path.basename(
-                            product_image_path
-                        ),
-                        product_file,
-                        "image/png"
-                    )
-                },
+                IMPORTANT:
 
-                data={
+                - DO NOT generate a product
+                - DO NOT generate a bottle
+                - Leave the podium empty
+                - Leave the foreground clear
+                - Create a luxury scene for
+                  later hero product placement
 
-                    "prompt": f"""
+                SCENE REQUIREMENTS:
 
-                    {prompt}
+                {prompt}
 
-                    IMPORTANT:
+                - luxury podium
 
-                    Use the uploaded product
-                    image as the exact product.
+                - cinematic lighting
 
-                    Preserve:
-                    - exact bottle
-                    - exact supplement label
-                    - exact packaging
-                    - exact product colors
+                - premium reflections
 
-                    Generate:
-                    - premium wellness advertisement
-                    - cinematic composition
-                    - realistic podium placement
-                    - realistic shadows
-                    - luxury lighting
-                    - elegant reflections
-                    - editorial commercial quality
-                    - premium typography space
-                    - instagram ad quality
+                - realistic shadows
 
-                    Template reference:
-                    {os.path.basename(template_image_path)}
-                    """,
+                - luxury wellness branding
 
-                    "strength": 0.95,
+                - commercial photography
 
-                    "aspect_ratio": ratio,
+                - highly realistic
 
-                    "output_format": "png"
-                }
-            )
+                - elegant composition
 
-        # ======================================
-        # ERROR
-        # ======================================
+                - instagram luxury ad quality
+
+                - premium materials
+
+                - shallow depth of field
+
+                """,
+
+                "output_format":
+                "png",
+
+                "aspect_ratio":
+                ratio
+            }
+        )
 
         if response.status_code != 200:
 
@@ -121,10 +109,6 @@ def generate_stability_creative(
 
             return None
 
-        # ======================================
-        # OUTPUT DIRECTORY
-        # ======================================
-
         output_dir = os.path.join(
 
             os.path.dirname(__file__),
@@ -133,13 +117,11 @@ def generate_stability_creative(
         )
 
         os.makedirs(
+
             output_dir,
+
             exist_ok=True
         )
-
-        # ======================================
-        # SAVE IMAGE
-        # ======================================
 
         output_path = os.path.join(
 
@@ -156,10 +138,6 @@ def generate_stability_creative(
             file.write(
                 response.content
             )
-
-        # ======================================
-        # RETURN WEB PATH
-        # ======================================
 
         return (
             "/outputs/generated_ai_creative.png"

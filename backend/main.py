@@ -11,7 +11,9 @@ from fastapi import (
     File,
     Form
 )
-
+from template_processor import (
+    process_template
+)
 from fastapi.middleware.cors import (
     CORSMiddleware
 )
@@ -34,8 +36,8 @@ from nano_banana import (
 from auth import router as auth_router
 
 
-from stability_generator import (
-    generate_stability_creative
+from creative_pipeline import (
+    generate_final_creative
 )
 
 # ============================================
@@ -260,7 +262,67 @@ def get_products():
 # ============================================
 # TEMPLATE LIST
 # ============================================
+@app.post("/upload-template")
+async def upload_template(
 
+    file: UploadFile = File(...)
+):
+
+    try:
+
+        master_dir = os.path.join(
+            TEMPLATE_DIR,
+            "master"
+        )
+
+        os.makedirs(
+            master_dir,
+            exist_ok=True
+        )
+
+        template_path = os.path.join(
+            master_dir,
+            file.filename
+        )
+
+        with open(
+            template_path,
+            "wb"
+        ) as buffer:
+
+            shutil.copyfileobj(
+                file.file,
+                buffer
+            )
+
+        process_template(
+
+            template_path=template_path,
+
+            template_name=file.filename,
+
+            template_dir=TEMPLATE_DIR,
+
+            template_data_dir=TEMPLATE_DATA_DIR
+        )
+
+        return {
+
+            "status": "success",
+
+            "filename":
+            file.filename
+        }
+
+    except Exception as e:
+
+        return {
+
+            "status": "error",
+
+            "message":
+            str(e)
+        }
 @app.get("/template-list/{ratio}")
 def get_templates(
 
@@ -505,13 +567,15 @@ async def generate_ai_creative(
         # ====================================
 
         generated_image = (
-            generate_stability_creative(
+            generate_final_creative(
 
-                prompt=final_prompt,
-
-                product_image_path=product_path,
+                product_path=product_path,
 
                 template_image_path=template_image_path,
+
+                template_json_path=template_json_path,
+
+                prompt=final_prompt,
 
                 ratio=ratio_map.get(
                     ratio,
