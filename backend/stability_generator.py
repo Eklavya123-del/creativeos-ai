@@ -44,6 +44,11 @@ def generate_stability_creative(
                 "image/*"
             },
 
+            # Force multipart/form-data
+            files={
+                "none": ("", "")
+            },
+
             data={
 
                 "prompt":
@@ -55,15 +60,18 @@ def generate_stability_creative(
                 IMPORTANT:
 
                 - DO NOT generate a product
-                - DO NOT generate a bottle
+                - DO NOT generate a supplement bottle
+                - DO NOT generate packaging
                 - Leave the podium empty
                 - Leave the foreground clear
                 - Create a luxury scene for
-                  later hero product placement
+                  hero product placement
 
                 SCENE REQUIREMENTS:
 
                 {prompt}
+
+                ADDITIONAL REQUIREMENTS:
 
                 - luxury podium
 
@@ -87,6 +95,10 @@ def generate_stability_creative(
 
                 - shallow depth of field
 
+                - advertising studio quality
+
+                - award winning product photography
+
                 """,
 
                 "output_format":
@@ -95,6 +107,11 @@ def generate_stability_creative(
                 "aspect_ratio":
                 ratio
             }
+        )
+
+        print(
+            "STABILITY STATUS:",
+            response.status_code
         )
 
         if response.status_code != 200:
@@ -139,6 +156,11 @@ def generate_stability_creative(
                 response.content
             )
 
+        print(
+            "SCENE SAVED:",
+            output_path
+        )
+
         return (
             "/outputs/generated_ai_creative.png"
         )
@@ -149,6 +171,8 @@ def generate_stability_creative(
             "STABILITY GENERATION ERROR:"
         )
 
-        print(str(e))
+        print(
+            str(e)
+        )
 
         return None
